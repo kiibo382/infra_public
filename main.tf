@@ -8,8 +8,8 @@ terraform {
 }
 
 provider "aws" {
-  profile = "ccti-dev"
-  region  = "ap-northeast-1"
+  profile = var.profile
+  region  = var.region
 }
 
 resource "aws_instance" "example" {
