@@ -12,7 +12,6 @@ provider "aws" {
   region  = var.region
 }
 
-resource "aws_instance" "example" {
-  ami           = "ami-01748a72bed07727c"
-  instance_type = "t2.micro"
+resource "aws_s3_bucket" "kizawa-transcribe-input" {
+  acl    = "private"
 }
