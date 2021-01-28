@@ -1,0 +1,142 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template for auto stop and start EC2 instances
+#
+# Metadata
+#
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: CloudWatch Events Configuration
+      Parameters:
+      - StartSchedule
+      - StopSchedule
+#
+# Parameters
+#
+Parameters:
+  StartSchedule:
+    Description: Start Datetime format cron
+    Default: 0 23 ? * SUN-THU *
+    Type: String
+  StopSchedule:
+    Description: Stop Datetime format cron
+    Default: 0 10 ? * MON-FRI *
+    Type: String
+#
+# Resources
+#
+Resources:
+  StateSchedulerExecRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ec2-sheduler-lambda-role
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: LambdaExecPolicy
+        PolicyDocument:
+          Statement:
+          - Sid: AccessToCWLog
+            Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: "*"
+          - Sid: AccessToInstance
+            Effect: Allow
+            Action:
+            - ec2:Describe*
+            - ec2:Start*
+            - ec2:Stop*
+            Resource: "*"
+  StateSchedulerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          import boto3
+          
+          def lambda_handler(event, context):
+            awsRegions = boto3.client('ec2').describe_regions()['Regions']
+
+            for region in awsRegions:
+              awsregion = region['RegionName']
+              ec2 = boto3.resource('ec2', region_name=awsregion)
+
+              instances = ec2.instances.all()
+
+              start_list = []
+              stop_list = []
+              action = event['Action']
+
+              for i in instances:
+                  if i.tags != None:
+                      for t in i.tags:
+                          if t['Key'] == 'Ec2StartStop':
+
+                              if t['Value'] == 'Auto' or t['Value'] == action:
+                                  if action == 'Start' and i.state['Name'] == 'stopped':
+                                          start_list.append(i.instance_id)
+                                  elif action == 'Stop' and i.state['Name'] == 'running':
+                                          stop_list.append(i.instance_id)
+
+              if start_list:
+                  print('Starting', len(start_list), 'instances', start_list)
+                  ec2.instances.filter(InstanceIds=start_list).start()
+
+              elif stop_list:
+                  print('Stopping', len(stop_list), 'instances', stop_list)
+                  ec2.instances.filter(InstanceIds=stop_list).stop()
+      FunctionName: ec2-schedule-function
+      Description: Scheduled EC2 stop and start.
+      Handler: index.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt [ StateSchedulerExecRole, Arn ]
+      Runtime: python3.6
+      Timeout: 60
+  StartScheduledRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: ScheduledRule for start instance
+      Name: ec2-start-rule
+      ScheduleExpression: !Sub cron(${StartSchedule})
+      State: ENABLED
+      Targets:
+      - Arn: !GetAtt [ StateSchedulerFunction, Arn ]
+        Id: StateSchedulerFunction
+        Input: '{"Action":"Start"}'
+  StopScheduledRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: ScheduledRule for stop instance
+      Name: ec2-stop-rule
+      ScheduleExpression: !Sub cron(${StopSchedule})
+      State: ENABLED
+      Targets:
+      - Arn: !GetAtt [ StateSchedulerFunction, Arn ]
+        Id: StateSchedulerFunction
+        Input: '{"Action":"Stop"}'
+  PermissionForStartEventsToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref StateSchedulerFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt [ StartScheduledRule, Arn ]
+  PermissionForStopEventsToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref StateSchedulerFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt [ StopScheduledRule, Arn ]

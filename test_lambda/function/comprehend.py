@@ -1,5 +1,6 @@
 import datetime
 import json
+import os
 import urllib.parse
 
 import boto3
@@ -23,6 +24,7 @@ def lambda_handler(event, context):
         sentiment_response = comprehend.detect_sentiment(
             Text=transcript, LanguageCode="ja"
         )
+        key_phrases = comprehend.detect_key_phrases(Text=transcript, LanguageCode="ja")
     except Exception as e:
         print(e)
         print(
@@ -32,12 +34,17 @@ def lambda_handler(event, context):
         )
         raise e
 
-    comprehend_bucket = "kizawa-comprehend-bucket"
+    comprehend_bucket = os.environ("COMPREHEND_BUCKET")
     output_key = datetime.datetime.now().strftime("%Y%m%d%H%M%S") + ".json"
+    res_dict = {
+        "Sentiment": sentiment_response["Sentiment"],
+        "SentimentScore": sentiment_response["SentimentScore"],
+        "KeyPhrases": key_phrases["KeyPhreses"],
+    }
 
     try:
         upload_response = s3.put_object(
-            Body=json.dumps(sentiment_response),
+            Body=json.dumps(res_dict),
             Bucket=comprehend_bucket,
             Key=output_key,
         )

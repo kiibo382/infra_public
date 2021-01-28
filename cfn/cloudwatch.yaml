@@ -1,0 +1,76 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  TargetWorkspaceId:
+    Type: String
+  TargetChannelId:
+    Type: String
+  TranscribeFunctionName:
+    Type: String
+    Default: kizawa-transcribe-function
+  ComprehendFunctionName:
+    Type: String
+    Default: kizawa-comprehend-function
+
+Resources:
+  # CloudWatchアラーム用のSNSトピック
+  CloudWatchAlarmForChatbotTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: kizawa-cloudwatch-alarm-for-chatbot-topic
+
+  # CloudWatchアラームの定義
+  LambdaFunctionErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: kizawa-lambda-error-for-chatbot-alarm
+      Namespace: AWS/Lambda
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref TranscribeFunctionName
+      MetricName: Errors
+      ComparisonOperator: GreaterThanOrEqualToThreshold  # 閾値以上
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Statistic: Maximum  # 最大
+      Threshold: 1  # 閾値
+      TreatMissingData: notBreaching  # Errorsがない場合は良好として扱う
+      AlarmActions:
+        - !Ref CloudWatchAlarmForChatbotTopic  # アラーム遷移時のアクション
+      OKActions:
+        - !Ref CloudWatchAlarmForChatbotTopic  # OK遷移時のアクション
+
+  Chatbot:
+    Type: AWS::Chatbot::SlackChannelConfiguration
+    Properties: 
+      ConfigurationName: KizawaChatbotForCloudFormation
+      IamRoleArn: !GetAtt ChatbotIamRole.Arn
+      LoggingLevel: INFO
+      SlackChannelId: !Ref TargetChannelId
+      SlackWorkspaceId: !Ref TargetWorkspaceId
+      SnsTopicArns: 
+        - !Ref CloudWatchAlarmForChatbotTopic
+
+  ChatbotIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: kizawa-chatbot-iam-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: chatbot.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: kizawa-chatbot-iam-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudwatch:Describe*
+                  - cloudwatch:Get*
+                  - cloudwatch:List*
+                Resource:
+                  - "*"
