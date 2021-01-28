@@ -1,4 +1,5 @@
 import datetime
+import os
 import urllib.parse
 
 import boto3
@@ -24,7 +25,7 @@ def lambda_handler(event, context):
                 + "/"
                 + key
             },
-            OutputBucketName="kizawa-transcribe-bucket",
+            OutputBucketName=os.environ("TRANSCRIBE_BUCKET"),
         )
     except Exception as e:
         print(e)
