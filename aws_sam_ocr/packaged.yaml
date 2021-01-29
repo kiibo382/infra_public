@@ -1,0 +1,94 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SAM App, transcribe call recording in S3 bucket, and put into S3 bucket.
+Resources:
+  TranscribeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: kizawa-transcribe-function
+      Handler: src/transcribe.lambda_handler
+      Runtime: python3.7
+      CodeUri: s3://kizawa-lambda-code-bucket/4bb1c723257da299bef70be8dd52cc3b
+      Description: null
+      MemorySize: 512
+      Timeout: 30
+      Environment:
+        Variables:
+          TRANSCRIBE_BUCKET_NAME:
+            Ref: TranscribeFunctionBucket
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - s3:*
+          Resource: arn:aws:s3:::*
+        - Effect: Allow
+          Action:
+          - transcribe:*
+          Resource: '*'
+      Events:
+        BucketEvent1:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: CallRecordingBucket
+            Events:
+            - s3:ObjectCreated:*
+  TranscribeFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${TranscribeFunction}
+      RetentionInDays: 14
+  ComprehendFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: kizawa-comprehend-function
+      Handler: src/comprehend.lambda_handler
+      Runtime: python3.7
+      CodeUri: s3://kizawa-lambda-code-bucket/4bb1c723257da299bef70be8dd52cc3b
+      Description: null
+      MemorySize: 512
+      Timeout: 30
+      Environment:
+        Variables:
+          COMPREHEND_BUCKET_NAME:
+            Ref: ComprehendFunctionBucket
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - s3:*
+          Resource: arn:aws:s3:::*
+        - Effect: Allow
+          Action:
+          - comprehend:*
+          Resource: '*'
+      Events:
+        BucketEvent2:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: TranscribeFunctionBucket
+            Events:
+            - s3:ObjectCreated:*
+  ComprehendFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${ComprehendFunction}
+      RetentionInDays: 14
+  CallRecordingBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: kizawa-call-recording-bucket
+  TranscribeFunctionBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: kizawa-transcribe-bucket
+  ComprehendFunctionBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: kizawa-comprehend-bucket
