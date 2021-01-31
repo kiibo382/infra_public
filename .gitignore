@@ -1,3 +1,6 @@
 .terraform
 .terraform.*
 terraform.tfvars
+node_modules
+transcribe_comprehend
+transcribe_comprehend2
