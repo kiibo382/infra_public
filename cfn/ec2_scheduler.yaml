@@ -1,9 +1,7 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Description: CloudFormation template for auto stop and start EC2 instances
-#
-# Metadata
-#
+
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -12,9 +10,7 @@ Metadata:
       Parameters:
       - StartSchedule
       - StopSchedule
-#
-# Parameters
-#
+
 Parameters:
   StartSchedule:
     Description: Start Datetime format cron
@@ -24,9 +20,7 @@ Parameters:
     Description: Stop Datetime format cron
     Default: 0 10 ? * MON-FRI *
     Type: String
-#
-# Resources
-#
+
 Resources:
   StateSchedulerExecRole:
     Type: AWS::IAM::Role

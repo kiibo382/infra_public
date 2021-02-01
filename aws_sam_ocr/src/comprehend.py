@@ -1,3 +1,4 @@
+from __future__ import print_function
 import datetime
 import json
 import os
@@ -39,14 +40,12 @@ def lambda_handler(event, context):
     res_dict = {
         "Sentiment": sentiment_response["Sentiment"],
         "SentimentScore": sentiment_response["SentimentScore"],
-        "KeyPhrases": key_phrases["KeyPhrases"],
+        "KeyPhrases": key_phrases["KeyPhrases"]
     }
 
     try:
         upload_response = s3.put_object(
-            Body=json.dumps(res_dict),
-            Bucket=comprehend_bucket,
-            Key=output_key,
+            Body=json.dumps(res_dict), Bucket=comprehend_bucket, Key=output_key
         )
         print(upload_response)
     except Exception as e:
