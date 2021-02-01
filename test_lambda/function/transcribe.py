@@ -25,7 +25,8 @@ def lambda_handler(event, context):
                 + "/"
                 + key
             },
-            OutputBucketName=os.environ("TRANSCRIBE_BUCKET"),
+            OutputBucketName=os.environ["TRANSCRIBE_BUCKET"],
+            OutputKey=key[:-4] + "-transcribe.json",
         )
     except Exception as e:
         print(e)

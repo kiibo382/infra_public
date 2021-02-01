@@ -3,11 +3,28 @@ Transform: 'AWS::Serverless-2016-10-31'
 
 Description: SAM App, transcribe call recording in S3 bucket, and put into S3 bucket.
 
+Parameters:
+  TranscribeFunctionName:
+    Type: String
+    Default: kizawa-transcribe-function
+  ComprehendFunctionName:
+    Type: String
+    Default: kizawa-comprehend-function
+  CallRecordingBucketName:
+    Type: String
+    Default: kizawa-call-recording-bucket
+  TranscribeFunctionBucketName:
+    Type: String
+    Default: kizawa-transcribe-bucket
+  ComprehendFunctionBucketName:
+    Type: String
+    Default: kizawa-comprehend-bucket
+
 Resources:
   TranscribeFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
-      FunctionName: kizawa-transcribe-function
+      FunctionName: !Ref TranscribeFunctionName
       Handler: src/transcribe.lambda_handler
       Runtime: python3.7
       CodeUri: .
@@ -47,7 +64,7 @@ Resources:
   ComprehendFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
-      FunctionName: kizawa-comprehend-function
+      FunctionName: !Ref ComprehendFunctionName
       Handler: src/comprehend.lambda_handler
       Runtime: python3.7
       CodeUri: .
@@ -77,6 +94,11 @@ Resources:
               Ref: TranscribeFunctionBucket
             Events:
               - 's3:ObjectCreated:*'
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: -transcribe.json
   
   ComprehendFunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -87,14 +109,24 @@ Resources:
   CallRecordingBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
-      BucketName: kizawa-call-recording-bucket
+      BucketName: !Ref CallRecordingBucketName
   
   TranscribeFunctionBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
-      BucketName: kizawa-transcribe-bucket
+      BucketName: !Ref TranscribeFunctionBucketName
   
   ComprehendFunctionBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
-      BucketName: kizawa-comprehend-bucket
+      BucketName: !Ref ComprehendFunctionBucketName
+
+Outputs:
+  TranscribeFunctionName:
+    Value: !Ref TranscribeFunctionName
+    Export:
+      Name: TranscribeFunctionName
+  ComprehendFunctionName: 
+    Value: !Ref ComprehendFunctionName
+    Export:
+      Name: ComprehendFunctionName

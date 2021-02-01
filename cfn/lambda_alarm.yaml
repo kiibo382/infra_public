@@ -3,53 +3,66 @@ AWSTemplateFormatVersion: "2010-09-09"
 Parameters:
   TargetWorkspaceId:
     Type: String
+    Default: T3VK2SA20
   TargetChannelId:
     Type: String
-  TranscribeFunctionName:
-    Type: String
-    Default: kizawa-transcribe-function
-  ComprehendFunctionName:
-    Type: String
-    Default: kizawa-comprehend-function
+    Default: C46R4PCCV
 
 Resources:
-  # CloudWatchアラーム用のSNSトピック
-  CloudWatchAlarmForChatbotTopic:
+  LambdaFunctionsSNSTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: kizawa-cloudwatch-alarm-for-chatbot-topic
-
-  # CloudWatchアラームの定義
-  LambdaFunctionErrorsAlarm:
+      TopicName: kizawa-lambda-functions-topic
+  TranscribeFunctionCloudwatchAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: kizawa-lambda-error-for-chatbot-alarm
+      AlarmName: kizawa-transcribe-cloudwatch-alarm
       Namespace: AWS/Lambda
       Dimensions:
         - Name: FunctionName
-          Value: !Ref TranscribeFunctionName
+          Value: !ImportValue TranscribeFunctionName
       MetricName: Errors
-      ComparisonOperator: GreaterThanOrEqualToThreshold  # 閾値以上
-      Period: 60  # 期間[s]
-      EvaluationPeriods: 1  # 閾値を超えた回数
-      Statistic: Maximum  # 最大
-      Threshold: 1  # 閾値
-      TreatMissingData: notBreaching  # Errorsがない場合は良好として扱う
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Period: 60
+      EvaluationPeriods: 1
+      Statistic: Maximum
+      Threshold: 1
+      TreatMissingData: notBreaching
       AlarmActions:
-        - !Ref CloudWatchAlarmForChatbotTopic  # アラーム遷移時のアクション
+        - !Ref LambdaFunctionsSNSTopic
       OKActions:
-        - !Ref CloudWatchAlarmForChatbotTopic  # OK遷移時のアクション
+        - !Ref LambdaFunctionsSNSTopic
+    
+  ComprehendFunctionCloudwatchAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: kizawa-comprehend-cloudwatch-alarm
+      Namespace: AWS/Lambda
+      Dimensions:
+        - Name: FunctionName
+          Value: !ImportValue ComprehendFunctionName
+      MetricName: Errors
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Period: 60
+      EvaluationPeriods: 1
+      Statistic: Maximum
+      Threshold: 1
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref LambdaFunctionsSNSTopic
+      OKActions:
+        - !Ref LambdaFunctionsSNSTopic
 
   Chatbot:
     Type: AWS::Chatbot::SlackChannelConfiguration
     Properties: 
-      ConfigurationName: KizawaChatbotForCloudFormation
+      ConfigurationName: kizawa_lambda_chatbot
       IamRoleArn: !GetAtt ChatbotIamRole.Arn
       LoggingLevel: INFO
       SlackChannelId: !Ref TargetChannelId
       SlackWorkspaceId: !Ref TargetWorkspaceId
       SnsTopicArns: 
-        - !Ref CloudWatchAlarmForChatbotTopic
+        - !Ref LambdaFunctionsSNSTopic
 
   ChatbotIamRole:
     Type: AWS::IAM::Role

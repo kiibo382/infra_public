@@ -34,12 +34,12 @@ def lambda_handler(event, context):
         )
         raise e
 
-    comprehend_bucket = os.environ("COMPREHEND_BUCKET")
-    output_key = datetime.datetime.now().strftime("%Y%m%d%H%M%S") + ".json"
+    comprehend_bucket = os.environ["COMPREHEND_BUCKET_NAME"]
+    output_key = input_key[:-16] + "-comprehend.json"
     res_dict = {
         "Sentiment": sentiment_response["Sentiment"],
         "SentimentScore": sentiment_response["SentimentScore"],
-        "KeyPhrases": key_phrases["KeyPhreses"],
+        "KeyPhrases": key_phrases["KeyPhrases"],
     }
 
     try:
