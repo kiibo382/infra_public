@@ -15,11 +15,15 @@ provider:
   iamRoleStatements:
     - Effect: Allow
       Action:
-        - s3:PutObject
         - s3:GetObject
       Resource:
         - 'arn:aws:s3:::${self:provider.environment.AUDIO_BUCKET_NAME1}/*'
         - 'arn:aws:s3:::${self:provider.environment.AUDIO_BUCKET_NAME2}/*'
+    - Effect: Allow
+      Action:
+        - s3:PutObject
+        - s3:GetObject
+      Resource:
         - 'arn:aws:s3:::${self:provider.environment.TRANSCRIBE_BUCKET_NAME}/*'
         - 'arn:aws:s3:::${self:provider.environment.COMPREHEND_BUCKET_NAME}/*'
     - Effect: Allow
@@ -40,13 +44,16 @@ provider:
         - "*"
 
 functions:
-  transcribe:
+  transcribe1:
     handler: transcribe.lambda_handler
     events:
       - s3:
           bucket: ${self:provider.environment.AUDIO_BUCKET_NAME1}
           event: s3:ObjectCreated:*
           existing: true
+  transcribe2:
+    handler: transcribe.lambda_handler
+    events:
       - s3:
           bucket: ${self:provider.environment.AUDIO_BUCKET_NAME2}
           event: s3:ObjectCreated:*
