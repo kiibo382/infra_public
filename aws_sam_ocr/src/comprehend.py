@@ -36,7 +36,7 @@ def lambda_handler(event, context):
         raise e
 
     comprehend_bucket = os.environ["COMPREHEND_BUCKET_NAME"]
-    output_key = input_key[:-16] + "-comprehend.json"
+    output_key = input_key.replace("transcribe", "comprehend")
     res_dict = {
         "Sentiment": sentiment_response["Sentiment"],
         "SentimentScore": sentiment_response["SentimentScore"],

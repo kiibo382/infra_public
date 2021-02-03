@@ -1,8 +1,9 @@
+from __future__ import print_function
+import boto3
 import datetime
 import os
 import urllib.parse
 
-import boto3
 
 s3 = boto3.client("s3")
 transcribe = boto3.client("transcribe")
@@ -25,7 +26,11 @@ def lambda_handler(event, context):
                 + "/"
                 + key
             },
-            OutputBucketName=os.environ("TRANSCRIBE_BUCKET"),
+            OutputBucketName=os.environ["TRANSCRIBE_BUCKET_NAME"],
+            OutputKey=bucket
+            + "/"
+            + key[:-4].replace("vpbx*-", "")
+            + "-transcribe.json",
         )
     except Exception as e:
         print(e)

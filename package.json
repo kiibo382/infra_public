@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/kiibo382/terra_sample#readme",
   "dependencies": {
-    "serverless": "^2.21.1"
+    "serverless": "^2.21.1",
+    "serverless-plugin-aws-alerts": "^1.6.1"
   }
 }

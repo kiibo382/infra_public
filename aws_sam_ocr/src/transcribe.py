@@ -27,7 +27,7 @@ def lambda_handler(event, context):
                 + key
             },
             OutputBucketName=os.environ["TRANSCRIBE_BUCKET_NAME"],
-            OutputKey=key[:-4] + "-transcribe.json",
+            OutputKey=key[:-4].replace("vpbx*", "") + "-transcribe.json",
         )
     except Exception as e:
         print(e)
