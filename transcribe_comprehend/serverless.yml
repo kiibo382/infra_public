@@ -66,11 +66,17 @@ functions:
           event: s3:ObjectCreated:*
           rules:
             - suffix: -transcribe.json
-  get:
-    handler: handler.get
+  results:
+    handler: test_results.get
     events:
       - http:
-          path: "{bucketname}/{key}"
+          path: results
+          method: get
+  audio:
+    handler: test_records.get
+    events:
+      - http:
+          path: records
           method: get
 
 resources:
@@ -87,17 +93,4 @@ resources:
       Type: "AWS::S3::Bucket"
       Properties:
         BucketName: ${self:provider.environment.COMPREHEND_BUCKET_NAME}
-    S3IamPolicy:
-      Type: AWS::IAM::Policy
-      DependsOn: S3AudioBucket1
-      Properties:
-        PolicyName: lambda-s3
-        PolicyDocument:
-          Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - s3:GetObject
-              Resource: arn:aws:s3:::${self:provider.environment.AUDIO_BUCKET_NAME1}/*
-        Roles:
-          - Ref: IamRoleLambdaExecution
+
