@@ -48,6 +48,9 @@ def lambda_handler(event, context):
             Body=json.dumps(res_dict), Bucket=comprehend_bucket, Key=output_key
         )
         print(upload_response)
+        print("records_key=")
+        print("results_path=")
+        print(output_key.replace("-comprehend.json", ""))
     except Exception as e:
         print(e)
         print("Error upload comprehend data into s3 bucket.")

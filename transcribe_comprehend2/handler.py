@@ -1,24 +1,35 @@
+import boto3
+import datetime
+import os
+import urllib.parse
 import json
+import base64
 
 
-def hello(event, context):
-    body = {
-        "message": "Go Serverless v1.0! Your function executed successfully!",
-        "input": event
-    }
+def lambda_handler(event, context):
+    print json.dumps(event)
 
-    response = {
-        "statusCode": 200,
-        "body": json.dumps(body)
-    }
+    try:
+        s3 = boto3.resource("s3")
+        bucket = s3.Bucket("bucketName")
 
-    return response
+        # バイナリがBase64にエンコードされているので、ここでデコード
+        imageBody = base64.b64decode(event["body-json"])
 
-    # Use this code if you don't use the http event with the LAMBDA-PROXY
-    # integration
-    """
-    return {
-        "message": "Go Serverless v1.0! Your function executed successfully!",
-        "event": event
-    }
-    """
+        key = event["pathParameters"]["key"]
+        # リクエストパスを組み合わせてKeyにする
+        imagePath = event["params"]["path"]
+        key = imagePath["key"] + "/" + imagePath["name"]
+        print key
+
+        bucket.put_object(Body=imageBody, Key=key)
+        print "success!"
+
+    except Exception as e:
+        print "Error!"
+        print e
+
+
+def get(event, context):
+    bucket = event["pathParameters"]["bucketname"]
+    key = event["pathParameters"]["key"]

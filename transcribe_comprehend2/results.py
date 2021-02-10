@@ -11,28 +11,33 @@ COMPREHEND_BUCKET = os.environ["COMPREHEND_BUCKET_NAME"]
 def get(event, context):
     s3 = boto3.client("s3")
     try:
-        audio_bucket = event["queryStringParameters"]["audio_bucket"]
-        date_str = event["queryStringParameters"]["finished_timestamp"]
+        # audio_bucket = event["pathParameters"]["audio_bucket"]
+        # date_str = event["pathParameters"]["finished_timestamp"]
+
         # date_dt = datetime.datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
-        date_dt = datetime.datetime.fromtimestamp(date_str)
-        path = (
-            audio_bucket
-            + "/"
-            + str(date_dt.year)
-            + "/"
-            + str(date_dt.month)
-            + "/"
-            + str(date_dt.day)
-            + "/"
-            + str(date_dt.hour)
-            + "/"
-        )
+
+        # date_dt = datetime.datetime.fromtimestamp(date_str)
+        # path = (
+        #     audio_bucket
+        #     + "/"
+        #     + str(date_dt.year)
+        #     + "/"
+        #     + str(date_dt.month)
+        #     + "/"
+        #     + str(date_dt.day)
+        #     + "/"
+        #     + str(date_dt.hour)
+        #     + "/"
+        # )
+        path = event["pathParameters"]["path"]
 
         transcribe_response = s3.get_object(
-            Bucket=TRANSCRIBE_BUCKET, Key=path + date_str + "-transcribe.json"
+            Bucket=TRANSCRIBE_BUCKET,
+            Key=path + "-transcribe.json",
         )
         comprehend_response = s3.get_object(
-            Bucket=COMPREHEND_BUCKET, Key=path + date_str + "-comprehend.json"
+            Bucket=COMPREHEND_BUCKET,
+            Key=path + "-comprehend.json",
         )
         response_body = {
             "transcirbe_result": transcribe_response["Body"].read(),
@@ -49,5 +54,3 @@ def get(event, context):
     except Exception as e:
         print(e)
         raise e
-
-        return 0

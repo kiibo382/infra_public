@@ -32,6 +32,8 @@ def lambda_handler(event, context):
             + key[:-4].replace("vpbx*-", "")
             + "-transcribe.json",
         )
+        print("records_path = ")
+        print(bucket + "/" + key)
     except Exception as e:
         print(e)
         print("Error transcribe object {} in bucket {}".format(key, bucket))

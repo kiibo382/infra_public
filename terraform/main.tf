@@ -1,6 +1,3 @@
-variable "profile" {}
-variable "region" {}
-
 terraform {
   required_providers {
     aws = {

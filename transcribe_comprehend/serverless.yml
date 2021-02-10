@@ -1,5 +1,9 @@
 service: kizawa-sample
 
+plugins:
+  - serverless-offline
+  - serverless-s3-local
+
 provider:
   name: aws
   runtime: python3.7
@@ -7,18 +11,24 @@ provider:
   region: ap-northeast-1
   profile: ccti-dev
   environment:
-    AUDIO_BUCKET_NAME1: ${self:service}-${opt:stage, self:provider.stage}-records-bucket1
-    AUDIO_BUCKET_NAME2: ${self:service}-${opt:stage, self:provider.stage}-records-bucket2
+    RECORDS_BUCKET_NAME1: ${self:service}-${opt:stage, self:provider.stage}-records-bucket1
+    RECORDS_BUCKET_NAME2: ${self:service}-${opt:stage, self:provider.stage}-records-bucket2
     TRANSCRIBE_BUCKET_NAME: ${self:service}-${opt:stage, self:provider.stage}-transcribe-bucket
     COMPREHEND_BUCKET_NAME: ${self:service}-${opt:stage, self:provider.stage}-comprehend-bucket
   logRetentionInDays: 30
+  logs:
+    restApi:
+      accessLogging: false
+      executionLogging: true
+      level: INFO
+      fullExecutionData: false
   iamRoleStatements:
     - Effect: Allow
       Action:
         - s3:GetObject
       Resource:
-        - "arn:aws:s3:::${self:provider.environment.AUDIO_BUCKET_NAME1}/*"
-        - "arn:aws:s3:::${self:provider.environment.AUDIO_BUCKET_NAME2}/*"
+        - "arn:aws:s3:::${self:provider.environment.RECORDS_BUCKET_NAME1}/*"
+        - "arn:aws:s3:::${self:provider.environment.RECORDS_BUCKET_NAME2}/*"
     - Effect: Allow
       Action:
         - s3:PutObject
@@ -42,22 +52,29 @@ provider:
         - "comprehend:*"
       Resource:
         - "*"
+  apiGateway:
+    binaryMediaTypes:
+      - "*/*"
+    shouldStartNameWithService: true
+  s3:
+    port: 4569
+    directory: tmp
 
 functions:
   transcribe1:
     handler: transcribe.lambda_handler
     events:
       - s3:
-          bucket: ${self:provider.environment.AUDIO_BUCKET_NAME1}
+          bucket: ${self:provider.environment.RECORDS_BUCKET_NAME1}
           event: s3:ObjectCreated:*
-          existing: true
+          # existing: true
   transcribe2:
     handler: transcribe.lambda_handler
     events:
       - s3:
-          bucket: ${self:provider.environment.AUDIO_BUCKET_NAME2}
+          bucket: ${self:provider.environment.RECORDS_BUCKET_NAME2}
           event: s3:ObjectCreated:*
-          existing: true
+          # existing: true
   comprehend:
     handler: comprehend.lambda_handler
     events:
@@ -70,27 +87,32 @@ functions:
     handler: test_results.get
     events:
       - http:
-          path: results
+          path: results/{path}
           method: get
-  audio:
+  records_get:
     handler: test_records.get
     events:
       - http:
-          path: records
+          path: records/{path}
           method: get
+  records_post:
+    handler: test_records.post
+    events:
+      - http:
+          path: records
+          method: post
 
 resources:
   Resources:
-    S3AudioBucket1:
-      Type: "AWS::S3::Bucket"
-      Properties:
-        BucketName: ${self:provider.environment.AUDIO_BUCKET_NAME1}
-    S3AudioBucket2:
-      Type: "AWS::S3::Bucket"
-      Properties:
-        BucketName: ${self:provider.environment.AUDIO_BUCKET_NAME2}
+    # S3AudioBucket1:
+    #   Type: "AWS::S3::Bucket"
+    #   Properties:
+    #     BucketName: ${self:provider.environment.RECORDS_BUCKET_NAME1}
+    # S3AudioBucket2:
+    #   Type: "AWS::S3::Bucket"
+    #   Properties:
+    #     BucketName: ${self:provider.environment.RECORDS_BUCKET_NAME2}
     S3ComprehendBucket:
       Type: "AWS::S3::Bucket"
       Properties:
         BucketName: ${self:provider.environment.COMPREHEND_BUCKET_NAME}
-
