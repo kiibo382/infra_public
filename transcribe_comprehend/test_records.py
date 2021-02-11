@@ -13,9 +13,8 @@ def get(event, context):
         aws_secret_access_key="S3RVER",
         region_name="ap-northeast-1",
     )
-    path = event["pathParameters"]["path"].split("_", 1)
-    records_bucket = path[0]
-    key = path[1]
+    records_bucket = event["pathParameters"]["records_bucket"]
+    key = event["pathParameters"]["key"]
     print(records_bucket)
     print(key)
 
@@ -28,10 +27,12 @@ def get(event, context):
         #     "headers": {"Content-Type": "audio/mpeg"},
         # }
         # print(records_data)
-        # print(type(records_data["Body"].read()))
+        print(records_data["Body"].read())
+        # print("####################################")
+        # print(base64.b64encode(records_data["Body"].read()))
         # print(type(records_data["Body"].read().decode()))
         # print(len(records_data["Body"].read()))
-        print(dir(records_data["Body"]))
+        # print(dir(records_data["Body"]))
         return {
             "statusCode": 200,
             "headers": {
@@ -39,7 +40,8 @@ def get(event, context):
                 "Content-Disposition": 'attachment; filename="sample.mp3"',
                 "Content-Length": records_data["ContentLength"],
             },
-            "body": base64.b64encode(records_data["Body"].read()).decode(),
+            "body": "hello"
+            # "body": base64.b64encode(records_data["Body"].read()),
         }
 
     except Exception as e:

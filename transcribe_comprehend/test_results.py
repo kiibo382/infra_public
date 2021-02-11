@@ -11,15 +11,16 @@ COMPREHEND_BUCKET = os.environ["COMPREHEND_BUCKET_NAME"]
 def get(event, context):
     s3 = boto3.client("s3")
     try:
-        path = event["pathParameters"]["path"].split("_", 1)
+        records_bucket = event["pathParameters"]["records_bucket"]
+        key = event["pathParameters"]["key"]
 
         transcribe_response = s3.get_object(
             Bucket=TRANSCRIBE_BUCKET,
-            Key=path[0] + "/" + path[1] + "-transcribe.json",
+            Key=records_bucket + "/" + key + "-transcribe.json",
         )
         comprehend_response = s3.get_object(
             Bucket=COMPREHEND_BUCKET,
-            Key=path[0] + "/" + path[1] + "-comprehend.json",
+            Key=records_bucket + "/" + key + "-comprehend.json",
         )
         response_body = {
             "transcirbe_result": transcribe_response["Body"].read(),

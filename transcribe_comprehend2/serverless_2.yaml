@@ -1,0 +1,59 @@
+functions:
+  records_get:
+    handler: test_records.get
+    # onError: arn:aws:sns:us-east-1:XXXXXX:test
+    onError:
+      Ref: RecordsFunctionsSNSTopic
+    name: ${self:service}-${opt:stage, self:provider.stage}-records-get-function
+    events:
+      - http:
+          path: records/{records_bucket}/{key}
+          method: get
+          integration: lambda
+          # カスタムリクエストの作成
+          request:
+            # カスタムテンプレートの作成
+            template:
+              application/octet-stream: '{"headers":{
+                #foreach($key in $input.params().header.keySet())
+                "$key": "$input.params().header.get($key)"#if($foreach.hasNext),#end
+                #end
+                },
+                "body": "$util.base64Encode($input.json(''$''))"
+                }'
+          # カスタムレスポンスの作成
+          response:
+            # ヘッダーとテンプレートの指定
+            headers:
+              Content-Type: "'application/octet-stream'"
+            template: $input.path('$')
+            # カスタムレスポンスコードの設定
+            statusCodes:
+              # デフォルトのステータスコード
+              200:
+                pattern: ""
+              # カスタムステータスコード
+              # 401:
+              #   pattern: '.*"statusCode": 401,.*'
+              #   template: $input.path("$.errorMessage")
+              #   headers:
+              #     Content-Type: "'application/octet-stream'"
+
+resources:
+  Resources:
+    # S3AudioBucket1:
+    #   Type: "AWS::S3::Bucket"
+    #   Properties:
+    #     BucketName: ${self:provider.environment.RECORDS_BUCKET_NAME1}
+    # S3AudioBucket2:
+    #   Type: "AWS::S3::Bucket"
+    #   Properties:
+    #     BucketName: ${self:provider.environment.RECORDS_BUCKET_NAME2}
+    S3ComprehendBucket:
+      Type: "AWS::S3::Bucket"
+      Properties:
+        BucketName: ${self:provider.environment.COMPREHEND_BUCKET_NAME}
+    RecordsFunctionsSNSTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ${self:service}-${opt:stage, self:provider.stage}-records-functions-topic
