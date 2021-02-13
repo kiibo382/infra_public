@@ -3,6 +3,7 @@ service: kizawa-sample
 plugins:
   - serverless-offline
   - serverless-s3-local
+  - serverless-apigw-binary
 
 provider:
   name: aws
@@ -56,17 +57,17 @@ provider:
         - "*"
   apiGateway:
     binaryMediaTypes:
-      - "*/*"
+      - "audio/mpeg"
     shouldStartNameWithService: true
   s3:
     port: 4569
-    directory: tmp
+    directory: sample
 
 package:
   exclude:
     - node_modules
     - buckets
-    - tmp
+    - sample
     - __pycache__
     - .serverless
     - package.json
@@ -109,6 +110,7 @@ functions:
       - http:
           path: records/{records_bucket}/{key}
           method: get
+          contentHandling: CONVERT_TO_BINARY
   records_post:
     handler: test_records.post
     events:

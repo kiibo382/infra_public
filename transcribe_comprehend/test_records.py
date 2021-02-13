@@ -1,12 +1,13 @@
-import boto3
-import json
 import base64
-import io
 from cgi import FieldStorage
+import json
+import io
+
+import boto3
 
 
 def get(event, context):
-    s3 = boto3.client(
+    s3 = boto3.resource(
         "s3",
         endpoint_url="http://localhost:4569",
         aws_access_key_id="S3RVER",
@@ -15,34 +16,32 @@ def get(event, context):
     )
     records_bucket = event["pathParameters"]["records_bucket"]
     key = event["pathParameters"]["key"]
-    print(records_bucket)
-    print(key)
 
     try:
-        records_data = s3.get_object(Bucket=records_bucket, Key=key)
-        # return {
-        #     "statusCode": 200,
-        #     "body": records_data["Body"],
-        #     "isBase64Encode": True,
-        #     "headers": {"Content-Type": "audio/mpeg"},
-        # }
+        records_obj = s3.Object(records_bucket, key)
+        records_data = records_obj.get(
+            ResponseContentEncoding="binary",
+            ResponseContentType="audio/mpeg",
+        )
         # print(records_data)
-        print(records_data["Body"].read())
+        # print(records_data["Body"].read())
         # print("####################################")
         # print(base64.b64encode(records_data["Body"].read()))
         # print(type(records_data["Body"].read().decode()))
         # print(len(records_data["Body"].read()))
         # print(dir(records_data["Body"]))
+        # print(base64.b64encode(records_data["Body"].read(amt=records_data["ContentLength"])).decode('utf-8'))
         return {
             "statusCode": 200,
             "headers": {
-                "Content-Type": records_data["ContentType"],
+                "Content-Type": "audio/mpeg",
                 "Content-Disposition": 'attachment; filename="sample.mp3"',
                 "Content-Length": records_data["ContentLength"],
             },
-            "body": "hello"
-            # "body": base64.b64encode(records_data["Body"].read()),
+            "body": base64.b64encode(records_data["Body"].read()).decode("UTF-8"),
+            "isBase64Encode": True,
         }
+        # http://localhost:3000/dev/records/kizawa-sample-dev-records-bucket1/sample.mp3
 
     except Exception as e:
         print(e)
@@ -66,7 +65,6 @@ def post(event, context):
     for f in fs.list:
         print(f.name, f.filename, f.type, f.value)
     try:
-        # imageBody = base64.b64decode(event["body-json"])
         # records_data = s3.put_object(
         #     Bucket=records_bucket, Body=body, Key=key, ContentType="audio/mpeg"
         # )
