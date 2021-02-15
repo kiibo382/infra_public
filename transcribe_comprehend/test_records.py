@@ -24,21 +24,37 @@ def get(event, context):
             ResponseContentType="audio/mpeg",
         )
         # print(records_data)
+        with open("sample.mp3", "rb") as f:
+            records_bytes = f.read()
+        records_encode = base64.b64encode(records_bytes)
+        print("encode")
+        print(records_bytes)
+        records_decode = records_encode.decode()
+        print("decode")
+        print(records_decode)
+
         # print(records_data["Body"].read())
         # print("####################################")
+        # print(type(records_data["Body"].read()))
+        # print("encode")
         # print(base64.b64encode(records_data["Body"].read()))
+        # print("decode")
+        # print(base64.b64decode(records_data["Body"].read()))
+        # print("decode")
         # print(type(records_data["Body"].read().decode()))
+        # print(records_data["Body"].read().decode())
+        # print("finish")
         # print(len(records_data["Body"].read()))
         # print(dir(records_data["Body"]))
         # print(base64.b64encode(records_data["Body"].read(amt=records_data["ContentLength"])).decode('utf-8'))
         return {
             "statusCode": 200,
             "headers": {
-                "Content-Type": "audio/mpeg",
-                "Content-Disposition": 'attachment; filename="sample.mp3"',
-                "Content-Length": records_data["ContentLength"],
+                # "Content-Type": "audio/mpeg",
+                # "Content-Disposition": 'attachment; filename="sample.mp3"',
+                # "Content-Length": records_data["ContentLength"],
             },
-            "body": base64.b64encode(records_data["Body"].read()).decode("UTF-8"),
+            "body": str(records_encode),
             "isBase64Encode": True,
         }
         # http://localhost:3000/dev/records/kizawa-sample-dev-records-bucket1/sample.mp3
