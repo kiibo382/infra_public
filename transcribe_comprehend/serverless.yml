@@ -4,6 +4,7 @@ plugins:
   - serverless-offline
   - serverless-s3-local
   - serverless-apigw-binary
+  # - serverless-plugin-custom-binary
 
 provider:
   name: aws
@@ -16,8 +17,8 @@ provider:
     RECORDS_BUCKET_NAME2: ${self:service}-${opt:stage, self:provider.stage}-records-bucket2
     TRANSCRIBE_BUCKET_NAME: ${self:service}-${opt:stage, self:provider.stage}-transcribe-bucket
     COMPREHEND_BUCKET_NAME: ${self:service}-${opt:stage, self:provider.stage}-comprehend-bucket
-  deploymentBucket:
-    name: ${self:service}-${opt:stage, self:provider.stage}-deployment-bucket
+  # deploymentBucket:
+  #   name: ${self:service}-${opt:stage, self:provider.stage}-deployment-bucket
   logRetentionInDays: 30
   logs:
     restApi:
@@ -29,14 +30,10 @@ provider:
     - Effect: Allow
       Action:
         - s3:GetObject
+        - s3:PutObject
       Resource:
         - "arn:aws:s3:::${self:provider.environment.RECORDS_BUCKET_NAME1}/*"
         - "arn:aws:s3:::${self:provider.environment.RECORDS_BUCKET_NAME2}/*"
-    - Effect: Allow
-      Action:
-        - s3:PutObject
-        - s3:GetObject
-      Resource:
         - "arn:aws:s3:::${self:provider.environment.TRANSCRIBE_BUCKET_NAME}/*"
         - "arn:aws:s3:::${self:provider.environment.COMPREHEND_BUCKET_NAME}/*"
     - Effect: Allow
@@ -55,23 +52,19 @@ provider:
         - "comprehend:*"
       Resource:
         - "*"
-  apiGateway:
-    binaryMediaTypes:
-      - "audio/mpeg"
-    shouldStartNameWithService: true
-  s3:
-    port: 4569
-    directory: sample
+  # s3:
+  #   port: 4569
+  #   directory: sample
+custom:
+  apigwBinary:
+    types:
+      - "*/*"
 
 package:
   exclude:
-    - node_modules
     - buckets
     - sample
     - __pycache__
-    - .serverless
-    - package.json
-    - package-lock.json
     - "*.sh"
     - .gitignore
 
@@ -109,14 +102,13 @@ functions:
     events:
       - http:
           path: records/{records_bucket}/{key}
-          method: get
-          contentHandling: CONVERT_TO_BINARY
-  records_post:
-    handler: test_records.post
-    events:
-      - http:
-          path: records
-          method: post
+  #         method: get
+  # records_post:
+  #   handler: test_records.post
+  #   events:
+  #     - http:
+  #         path: records
+  #         method: post
 
 resources:
   Resources:

@@ -1,6 +1,4 @@
 import ast
-import base64
-import datetime
 import json
 import os
 
@@ -22,26 +20,32 @@ def get(event, context):
         records_bucket = event["pathParameters"]["records_bucket"]
         key = event["pathParameters"]["key"]
 
-        transcribe_response = s3.get_object(
+        transcribe_data = s3.get_object(
             Bucket=TRANSCRIBE_BUCKET,
             Key=records_bucket + "/" + key + "-transcribe.json",
         )
-        comprehend_response = s3.get_object(
+        transcribe_dict = ast.literal_eval(
+            transcribe_data["Body"].read().decode("UTF-8")
+        )
+        transcribe_res = transcribe_dict["results"]["transcripts"]
+
+        comprehend_data = s3.get_object(
             Bucket=COMPREHEND_BUCKET,
             Key=records_bucket + "/" + key + "-comprehend.json",
         )
+
         response_body = {
-            "transcirbe_result": ast.literal_eval(transcribe_response["Body"].read().decode("UTF-8")),
-            "comprehend_result": ast.literal_eval(comprehend_response["Body"].read().decode("UTF-8")),
+            "transcirbe_result": transcribe_res,
+            "comprehend_result": ast.literal_eval(
+                comprehend_data["Body"].read().decode("UTF-8")
+            ),
         }
 
         return {
             "statusCode": 200,
             "body": json.dumps({"result": response_body}),
-            "isBase64Encode": False,
-            "headers": {
-                "Content-Type": "application/json"
-            },
+            "isBase64Encoded": False,
+            "headers": {"Content-Type": "application/json"},
         }
 
     except Exception as e:

@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: "Binary API Gateway&Lambda"
+
+Resources:
+  BinaryResponseApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: BinaryResponseApi
+      StageName: dev
+      BinaryMediaTypes:
+        - "image/*"
+
+  ImageResponseFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ImageResponseFunction
+      CodeUri: ./src
+      Handler: binary.handler
+      Runtime: python3.7
+      Events:
+        GetRoot:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BinaryResponseApi
+            Path: /
+            Method: get
+
+Outputs:
+  BinaryResponseApiURL:
+    Value: !Sub "https://${BinaryResponseApi}.execute-api.${AWS::Region}.amazonaws.com/dev/"
+    Export:
+      Name: BinaryResponseApiURL
