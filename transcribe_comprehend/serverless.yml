@@ -97,12 +97,15 @@ functions:
       - http:
           path: results/{records_bucket}/{key}
           method: get
+      # - http: 
+      #     path: /{proxy+}
+      #     method: any
   records_get:
     handler: test_records.get
     events:
       - http:
           path: records/{records_bucket}/{key}
-  #         method: get
+          method: get
   # records_post:
   #   handler: test_records.post
   #   events:
