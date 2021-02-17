@@ -34,7 +34,7 @@ def get(event, context):
                 "Content-Disposition": 'attachment; filename="sample.mp3"',
             },
             "body": base64.b64encode(records_data["Body"].read()).decode("UTF-8"),
-            "isBase64Encode": True,
+            "isBase64Encoded": True,
         }
 
     except Exception as e:
