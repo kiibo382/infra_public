@@ -30,9 +30,7 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions:
         - !Ref LambdaFunctionsSNSTopic
-      OKActions:
-        - !Ref LambdaFunctionsSNSTopic
-    
+
   ComprehendFunctionCloudwatchAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -50,18 +48,16 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions:
         - !Ref LambdaFunctionsSNSTopic
-      OKActions:
-        - !Ref LambdaFunctionsSNSTopic
 
   Chatbot:
     Type: AWS::Chatbot::SlackChannelConfiguration
-    Properties: 
+    Properties:
       ConfigurationName: kizawa_lambda_chatbot
       IamRoleArn: !GetAtt ChatbotIamRole.Arn
       LoggingLevel: INFO
       SlackChannelId: !Ref TargetChannelId
       SlackWorkspaceId: !Ref TargetWorkspaceId
-      SnsTopicArns: 
+      SnsTopicArns:
         - !Ref LambdaFunctionsSNSTopic
 
   ChatbotIamRole:
@@ -87,4 +83,3 @@ Resources:
                   - cloudwatch:List*
                 Resource:
                   - "*"
-

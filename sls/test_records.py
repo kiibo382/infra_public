@@ -20,6 +20,8 @@ def get(event, context):
         records_decode_str = records_encode.decode()
         return {
             "statusCode": 200,
+            # Content-Disposition: filenameを渡さなくても勝手にfilenameを送ってくれる
+            # Content-Lengthも同様
             "headers": {
                 "Content-Type": "audio/*",
                 # "Content-Disposition": 'attachment; filename="sample.mp3"',
