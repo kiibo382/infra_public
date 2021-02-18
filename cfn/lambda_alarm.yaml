@@ -12,7 +12,7 @@ Resources:
   LambdaFunctionsSNSTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: kizawa-lambda-functions-topic
+      TopicName: !Sub "${AWS::StackName}-lambda-functions-topic"
   TranscribeFunctionCloudwatchAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
