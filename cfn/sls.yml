@@ -1,0 +1,840 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: The AWS CloudFormation template for this Serverless application
+Resources:
+  Transcribe1LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "/aws/lambda/kizawa-sample-dev-transcribe1"
+      RetentionInDays: 30
+  Transcribe2LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "/aws/lambda/kizawa-sample-dev-transcribe2"
+      RetentionInDays: 30
+  ComprehendLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "/aws/lambda/kizawa-sample-dev-comprehend"
+      RetentionInDays: 30
+  ResultsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "/aws/lambda/kizawa-sample-dev-results"
+      RetentionInDays: 30
+  RecordsUnderscoregetLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "/aws/lambda/kizawa-sample-dev-records_get"
+      RetentionInDays: 30
+  IamRoleLambdaExecution:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName:
+            Fn::Join:
+              - "-"
+              - - kizawa-sample
+                - dev
+                - lambda
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:CreateLogGroup
+                Resource:
+                  - Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/kizawa-sample-dev*:*
+              - Effect: Allow
+                Action:
+                  - logs:PutLogEvents
+                Resource:
+                  - Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/kizawa-sample-dev*:*:*
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource:
+                  - arn:aws:s3:::kizawa-sample-dev-records-bucket1/*
+                  - arn:aws:s3:::kizawa-sample-dev-records-bucket2/*
+                  - arn:aws:s3:::kizawa-sample-dev-transcribe-bucket/*
+                  - arn:aws:s3:::kizawa-sample-dev-comprehend-bucket/*
+              - Effect: Allow
+                Action:
+                  - transcribe:StartTranscriptionJob
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - comprehend:*
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Action:
+                  - SNS:Publish
+                Resource:
+                  Fn::Join:
+                    - ":"
+                    - - arn:aws:sns
+                      - Ref: AWS::Region
+                      - Ref: AWS::AccountId
+                      - kizawa-sample-dev-complete-topic
+      Path: "/"
+      RoleName:
+        Fn::Join:
+          - "-"
+          - - kizawa-sample
+            - dev
+            - Ref: AWS::Region
+            - lambdaRole
+  Transcribe1LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: kizawa-sample-dev-deployment-bucket
+        S3Key: serverless/kizawa-sample/dev/1613700688313-2021-02-19T02:11:28.313Z/kizawa-sample.zip
+      Handler: transcribe.lambda_handler
+      Runtime: python3.8
+      FunctionName: kizawa-sample-dev-transcribe1
+      MemorySize: 1024
+      Timeout: 6
+      Environment:
+        Variables:
+          DEPLOYMENT_BUCKET_NAME: kizawa-sample-dev-deployment-bucket
+          RECORDS_BUCKET_NAME1: kizawa-sample-dev-records-bucket1
+          RECORDS_BUCKET_NAME2: kizawa-sample-dev-records-bucket2
+          TRANSCRIBE_BUCKET_NAME: kizawa-sample-dev-transcribe-bucket
+          COMPREHEND_BUCKET_NAME: kizawa-sample-dev-comprehend-bucket
+          COMPLETE_SNS_TOPIC: kizawa-sample-dev-complete-topic
+      Role:
+        Fn::GetAtt:
+          - IamRoleLambdaExecution
+          - Arn
+    DependsOn:
+      - Transcribe1LogGroup
+  Transcribe2LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: kizawa-sample-dev-deployment-bucket
+        S3Key: serverless/kizawa-sample/dev/1613700688313-2021-02-19T02:11:28.313Z/kizawa-sample.zip
+      Handler: transcribe.lambda_handler
+      Runtime: python3.8
+      FunctionName: kizawa-sample-dev-transcribe2
+      MemorySize: 1024
+      Timeout: 6
+      Environment:
+        Variables:
+          DEPLOYMENT_BUCKET_NAME: kizawa-sample-dev-deployment-bucket
+          RECORDS_BUCKET_NAME1: kizawa-sample-dev-records-bucket1
+          RECORDS_BUCKET_NAME2: kizawa-sample-dev-records-bucket2
+          TRANSCRIBE_BUCKET_NAME: kizawa-sample-dev-transcribe-bucket
+          COMPREHEND_BUCKET_NAME: kizawa-sample-dev-comprehend-bucket
+          COMPLETE_SNS_TOPIC: kizawa-sample-dev-complete-topic
+      Role:
+        Fn::GetAtt:
+          - IamRoleLambdaExecution
+          - Arn
+    DependsOn:
+      - Transcribe2LogGroup
+  ComprehendLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: kizawa-sample-dev-deployment-bucket
+        S3Key: serverless/kizawa-sample/dev/1613700688313-2021-02-19T02:11:28.313Z/kizawa-sample.zip
+      Handler: comprehend.lambda_handler
+      Runtime: python3.8
+      FunctionName: kizawa-sample-dev-comprehend
+      MemorySize: 1024
+      Timeout: 6
+      Environment:
+        Variables:
+          DEPLOYMENT_BUCKET_NAME: kizawa-sample-dev-deployment-bucket
+          RECORDS_BUCKET_NAME1: kizawa-sample-dev-records-bucket1
+          RECORDS_BUCKET_NAME2: kizawa-sample-dev-records-bucket2
+          TRANSCRIBE_BUCKET_NAME: kizawa-sample-dev-transcribe-bucket
+          COMPREHEND_BUCKET_NAME: kizawa-sample-dev-comprehend-bucket
+          COMPLETE_SNS_TOPIC: kizawa-sample-dev-complete-topic
+          SNS_TOPIC_ARN:
+            Fn::Join:
+              - ":"
+              - - arn:aws:sns
+                - Ref: AWS::Region
+                - Ref: AWS::AccountId
+                - kizawa-sample-dev-complete-topic
+      Role:
+        Fn::GetAtt:
+          - IamRoleLambdaExecution
+          - Arn
+    DependsOn:
+      - ComprehendLogGroup
+  ResultsLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: kizawa-sample-dev-deployment-bucket
+        S3Key: serverless/kizawa-sample/dev/1613700688313-2021-02-19T02:11:28.313Z/kizawa-sample.zip
+      Handler: test_results.get
+      Runtime: python3.8
+      FunctionName: kizawa-sample-dev-results
+      MemorySize: 1024
+      Timeout: 6
+      Environment:
+        Variables:
+          DEPLOYMENT_BUCKET_NAME: kizawa-sample-dev-deployment-bucket
+          RECORDS_BUCKET_NAME1: kizawa-sample-dev-records-bucket1
+          RECORDS_BUCKET_NAME2: kizawa-sample-dev-records-bucket2
+          TRANSCRIBE_BUCKET_NAME: kizawa-sample-dev-transcribe-bucket
+          COMPREHEND_BUCKET_NAME: kizawa-sample-dev-comprehend-bucket
+          COMPLETE_SNS_TOPIC: kizawa-sample-dev-complete-topic
+      Role:
+        Fn::GetAtt:
+          - IamRoleLambdaExecution
+          - Arn
+    DependsOn:
+      - ResultsLogGroup
+  RecordsUnderscoregetLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: kizawa-sample-dev-deployment-bucket
+        S3Key: serverless/kizawa-sample/dev/1613700688313-2021-02-19T02:11:28.313Z/kizawa-sample.zip
+      Handler: test_records.get
+      Runtime: python3.8
+      FunctionName: kizawa-sample-dev-records_get
+      MemorySize: 1024
+      Timeout: 6
+      Environment:
+        Variables:
+          DEPLOYMENT_BUCKET_NAME: kizawa-sample-dev-deployment-bucket
+          RECORDS_BUCKET_NAME1: kizawa-sample-dev-records-bucket1
+          RECORDS_BUCKET_NAME2: kizawa-sample-dev-records-bucket2
+          TRANSCRIBE_BUCKET_NAME: kizawa-sample-dev-transcribe-bucket
+          COMPREHEND_BUCKET_NAME: kizawa-sample-dev-comprehend-bucket
+          COMPLETE_SNS_TOPIC: kizawa-sample-dev-complete-topic
+      Role:
+        Fn::GetAtt:
+          - IamRoleLambdaExecution
+          - Arn
+    DependsOn:
+      - RecordsUnderscoregetLogGroup
+  Transcribe1LambdaVersionz9ftA2E3YrZqRHijd21LvzESASXo6Q6PNQ3eslHI:
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    Properties:
+      FunctionName:
+        Ref: Transcribe1LambdaFunction
+      CodeSha256: z2gUA9SjY2GQi49IZQ5dymFc4znWmtDf66jNWvFUhLw=
+  Transcribe2LambdaVersionUahX1CnWzmR7IrRlpDieSelpVqOxrY8lC3YNbOic:
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    Properties:
+      FunctionName:
+        Ref: Transcribe2LambdaFunction
+      CodeSha256: z2gUA9SjY2GQi49IZQ5dymFc4znWmtDf66jNWvFUhLw=
+  ComprehendLambdaVersionXoOxALu4ypNSX4yEc8BG5qAmB4fJdbXcltDLRdQOhM:
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    Properties:
+      FunctionName:
+        Ref: ComprehendLambdaFunction
+      CodeSha256: z2gUA9SjY2GQi49IZQ5dymFc4znWmtDf66jNWvFUhLw=
+  ResultsLambdaVersionvy3KmEVBiho9OZDDB8Xpq91Z4xWlRbekyGJL1lCozQ:
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    Properties:
+      FunctionName:
+        Ref: ResultsLambdaFunction
+      CodeSha256: z2gUA9SjY2GQi49IZQ5dymFc4znWmtDf66jNWvFUhLw=
+  RecordsUnderscoregetLambdaVersionZj2vL6s7xMmv6ql3UjW1VI9scUMq5Q64nEBZbnzM:
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    Properties:
+      FunctionName:
+        Ref: RecordsUnderscoregetLambdaFunction
+      CodeSha256: z2gUA9SjY2GQi49IZQ5dymFc4znWmtDf66jNWvFUhLw=
+  S3BucketKizawasampledevtranscribebucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: kizawa-sample-dev-transcribe-bucket
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Function:
+              Fn::GetAtt:
+                - ComprehendLambdaFunction
+                - Arn
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: "-transcribe.json"
+    DependsOn:
+      - ComprehendLambdaPermissionKizawasampledevtranscribebucketS3
+  ComprehendLambdaPermissionKizawasampledevtranscribebucketS3:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Fn::GetAtt:
+          - ComprehendLambdaFunction
+          - Arn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":s3:::kizawa-sample-dev-transcribe-bucket"
+      SourceAccount:
+        Ref: AWS::AccountId
+  Transcribe1CustomS31:
+    Type: Custom::S3
+    Version: 1
+    DependsOn:
+      - Transcribe1LambdaFunction
+      - CustomDashresourceDashexistingDashs3LambdaFunction
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - CustomDashresourceDashexistingDashs3LambdaFunction
+          - Arn
+      FunctionName: kizawa-sample-dev-transcribe1
+      BucketName: kizawa-sample-dev-records-bucket1
+      BucketConfigs:
+        - Event: s3:ObjectCreated:*
+          Rules:
+            - Suffix: ".wav"
+  Transcribe2CustomS31:
+    Type: Custom::S3
+    Version: 1
+    DependsOn:
+      - Transcribe2LambdaFunction
+      - CustomDashresourceDashexistingDashs3LambdaFunction
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - CustomDashresourceDashexistingDashs3LambdaFunction
+          - Arn
+      FunctionName: kizawa-sample-dev-transcribe2
+      BucketName: kizawa-sample-dev-records-bucket2
+      BucketConfigs:
+        - Event: s3:ObjectCreated:*
+          Rules:
+            - Suffix: ".wav"
+  IamRoleCustomResourcesLambdaExecution:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName:
+            Fn::Join:
+              - "-"
+              - - dev
+                - kizawa-sample
+                - custom-resources-lambda
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Resource:
+                  Fn::Join:
+                    - ":"
+                    - - arn
+                      - Ref: AWS::Partition
+                      - s3
+                      - ""
+                      - ""
+                      - kizawa-sample-dev-records-bucket1
+                Action:
+                  - s3:PutBucketNotification
+                  - s3:GetBucketNotification
+              - Effect: Allow
+                Resource:
+                  Fn::Join:
+                    - ":"
+                    - - arn
+                      - Ref: AWS::Partition
+                      - s3
+                      - ""
+                      - ""
+                      - kizawa-sample-dev-records-bucket2
+                Action:
+                  - s3:PutBucketNotification
+                  - s3:GetBucketNotification
+              - Effect: Allow
+                Resource:
+                  Fn::Join:
+                    - ":"
+                    - - arn
+                      - Ref: AWS::Partition
+                      - lambda
+                      - Ref: AWS::Region
+                      - Ref: AWS::AccountId
+                      - function
+                      - "*"
+                Action:
+                  - lambda:AddPermission
+                  - lambda:RemovePermission
+  CustomDashresourceDashexistingDashs3LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: kizawa-sample-dev-deployment-bucket
+        S3Key: serverless/kizawa-sample/dev/1613700688313-2021-02-19T02:11:28.313Z/custom-resources.zip
+      FunctionName: kizawa-sample-dev-custom-resource-existing-s3
+      Handler: s3/handler.handler
+      MemorySize: 1024
+      Runtime: nodejs12.x
+      Timeout: 180
+      Role:
+        Fn::GetAtt:
+          - IamRoleCustomResourcesLambdaExecution
+          - Arn
+    DependsOn:
+      - IamRoleCustomResourcesLambdaExecution
+  ApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: kizawa-sample-dev
+      EndpointConfiguration:
+        Types:
+          - EDGE
+      Policy: ""
+  ApiGatewayResourceResults:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - ApiGatewayRestApi
+          - RootResourceId
+      PathPart: results
+      RestApiId:
+        Ref: ApiGatewayRestApi
+  ApiGatewayResourceResultsRecordsbucketVar:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Ref: ApiGatewayResourceResults
+      PathPart: "{records_bucket}"
+      RestApiId:
+        Ref: ApiGatewayRestApi
+  ApiGatewayResourceResultsRecordsbucketVarProxyVar:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Ref: ApiGatewayResourceResultsRecordsbucketVar
+      PathPart: "{proxy+}"
+      RestApiId:
+        Ref: ApiGatewayRestApi
+  ApiGatewayResourceRecords:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - ApiGatewayRestApi
+          - RootResourceId
+      PathPart: records
+      RestApiId:
+        Ref: ApiGatewayRestApi
+  ApiGatewayResourceRecordsRecordsbucketVar:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Ref: ApiGatewayResourceRecords
+      PathPart: "{records_bucket}"
+      RestApiId:
+        Ref: ApiGatewayRestApi
+  ApiGatewayResourceRecordsRecordsbucketVarProxyVar:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Ref: ApiGatewayResourceRecordsRecordsbucketVar
+      PathPart: "{proxy+}"
+      RestApiId:
+        Ref: ApiGatewayRestApi
+  ApiGatewayMethodResultsRecordsbucketVarProxyVarGet:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      RequestParameters:
+        method.request.path.records_bucket: true
+      ResourceId:
+        Ref: ApiGatewayResourceResultsRecordsbucketVarProxyVar
+      RestApiId:
+        Ref: ApiGatewayRestApi
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - ":lambda:path/2015-03-31/functions/"
+              - Fn::GetAtt:
+                  - ResultsLambdaFunction
+                  - Arn
+              - "/invocations"
+      MethodResponses: []
+  ApiGatewayMethodRecordsRecordsbucketVarProxyVarGet:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      RequestParameters: {}
+      ResourceId:
+        Ref: ApiGatewayResourceRecordsRecordsbucketVarProxyVar
+      RestApiId:
+        Ref: ApiGatewayRestApi
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - ":lambda:path/2015-03-31/functions/"
+              - Fn::GetAtt:
+                  - RecordsUnderscoregetLambdaFunction
+                  - Arn
+              - "/invocations"
+      MethodResponses: []
+  ApiGatewayDeployment1613700677088:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: ApiGatewayRestApi
+      StageName: dev
+    DependsOn:
+      - ApiGatewayMethodResultsRecordsbucketVarProxyVarGet
+      - ApiGatewayMethodRecordsRecordsbucketVarProxyVarGet
+  ResultsLambdaPermissionApiGateway:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Fn::GetAtt:
+          - ResultsLambdaFunction
+          - Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: ApiGatewayRestApi
+            - "/*/*"
+  RecordsUnderscoregetLambdaPermissionApiGateway:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Fn::GetAtt:
+          - RecordsUnderscoregetLambdaFunction
+          - Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: ApiGatewayRestApi
+            - "/*/*"
+  AwsAlertsAlarm:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: kizawa-sample-dev-alarm
+      Subscription:
+        - Protocol: email
+          Endpoint: kizawa_shota@comsq.com
+  Transcribe1FunctionErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Threshold: 1
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      OKActions: []
+      AlarmActions:
+        - Ref: AwsAlertsAlarm
+      InsufficientDataActions: []
+      Dimensions:
+        - Name: FunctionName
+          Value:
+            Ref: Transcribe1LambdaFunction
+      TreatMissingData: missing
+      Statistic: Sum
+  Transcribe1FunctionThrottlesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      Namespace: AWS/Lambda
+      MetricName: Throttles
+      Threshold: 1
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      OKActions: []
+      AlarmActions:
+        - Ref: AwsAlertsAlarm
+      InsufficientDataActions: []
+      Dimensions:
+        - Name: FunctionName
+          Value:
+            Ref: Transcribe1LambdaFunction
+      TreatMissingData: missing
+      Statistic: Sum
+  Transcribe2FunctionErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Threshold: 1
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      OKActions: []
+      AlarmActions:
+        - Ref: AwsAlertsAlarm
+      InsufficientDataActions: []
+      Dimensions:
+        - Name: FunctionName
+          Value:
+            Ref: Transcribe2LambdaFunction
+      TreatMissingData: missing
+      Statistic: Sum
+  Transcribe2FunctionThrottlesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      Namespace: AWS/Lambda
+      MetricName: Throttles
+      Threshold: 1
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      OKActions: []
+      AlarmActions:
+        - Ref: AwsAlertsAlarm
+      InsufficientDataActions: []
+      Dimensions:
+        - Name: FunctionName
+          Value:
+            Ref: Transcribe2LambdaFunction
+      TreatMissingData: missing
+      Statistic: Sum
+  ComprehendFunctionErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Threshold: 1
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      OKActions: []
+      AlarmActions:
+        - Ref: AwsAlertsAlarm
+      InsufficientDataActions: []
+      Dimensions:
+        - Name: FunctionName
+          Value:
+            Ref: ComprehendLambdaFunction
+      TreatMissingData: missing
+      Statistic: Sum
+  ComprehendFunctionThrottlesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      Namespace: AWS/Lambda
+      MetricName: Throttles
+      Threshold: 1
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      OKActions: []
+      AlarmActions:
+        - Ref: AwsAlertsAlarm
+      InsufficientDataActions: []
+      Dimensions:
+        - Name: FunctionName
+          Value:
+            Ref: ComprehendLambdaFunction
+      TreatMissingData: missing
+      Statistic: Sum
+  ResultsFunctionErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Threshold: 1
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      OKActions: []
+      AlarmActions:
+        - Ref: AwsAlertsAlarm
+      InsufficientDataActions: []
+      Dimensions:
+        - Name: FunctionName
+          Value:
+            Ref: ResultsLambdaFunction
+      TreatMissingData: missing
+      Statistic: Sum
+  ResultsFunctionThrottlesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      Namespace: AWS/Lambda
+      MetricName: Throttles
+      Threshold: 1
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      OKActions: []
+      AlarmActions:
+        - Ref: AwsAlertsAlarm
+      InsufficientDataActions: []
+      Dimensions:
+        - Name: FunctionName
+          Value:
+            Ref: ResultsLambdaFunction
+      TreatMissingData: missing
+      Statistic: Sum
+  RecordsUnderscoregetFunctionErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Threshold: 1
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      OKActions: []
+      AlarmActions:
+        - Ref: AwsAlertsAlarm
+      InsufficientDataActions: []
+      Dimensions:
+        - Name: FunctionName
+          Value:
+            Ref: RecordsUnderscoregetLambdaFunction
+      TreatMissingData: missing
+      Statistic: Sum
+  RecordsUnderscoregetFunctionThrottlesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      Namespace: AWS/Lambda
+      MetricName: Throttles
+      Threshold: 1
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      OKActions: []
+      AlarmActions:
+        - Ref: AwsAlertsAlarm
+      InsufficientDataActions: []
+      Dimensions:
+        - Name: FunctionName
+          Value:
+            Ref: RecordsUnderscoregetLambdaFunction
+      TreatMissingData: missing
+      Statistic: Sum
+  S3AudioBucket1:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: kizawa-sample-dev-records-bucket1
+  S3AudioBucket2:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: kizawa-sample-dev-records-bucket2
+  S3ComprehendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: kizawa-sample-dev-comprehend-bucket
+  CompeleteSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: kizawa-sample-dev-complete-topic
+      Subscription:
+        - Protocol: email
+          Endpoint: kizawa_shota@comsq.com
+Outputs:
+  ServerlessDeploymentBucketName:
+    Value: kizawa-sample-dev-deployment-bucket
+  Transcribe1LambdaFunctionQualifiedArn:
+    Description: Current Lambda function version
+    Value:
+      Ref: Transcribe1LambdaVersionz9ftA2E3YrZqRHijd21LvzESASXo6Q6PNQ3eslHI
+  Transcribe2LambdaFunctionQualifiedArn:
+    Description: Current Lambda function version
+    Value:
+      Ref: Transcribe2LambdaVersionUahX1CnWzmR7IrRlpDieSelpVqOxrY8lC3YNbOic
+  ComprehendLambdaFunctionQualifiedArn:
+    Description: Current Lambda function version
+    Value:
+      Ref: ComprehendLambdaVersionXoOxALu4ypNSX4yEc8BG5qAmB4fJdbXcltDLRdQOhM
+  ResultsLambdaFunctionQualifiedArn:
+    Description: Current Lambda function version
+    Value:
+      Ref: ResultsLambdaVersionvy3KmEVBiho9OZDDB8Xpq91Z4xWlRbekyGJL1lCozQ
+  RecordsUnderscoregetLambdaFunctionQualifiedArn:
+    Description: Current Lambda function version
+    Value:
+      Ref: RecordsUnderscoregetLambdaVersionZj2vL6s7xMmv6ql3UjW1VI9scUMq5Q64nEBZbnzM
+  ServiceEndpoint:
+    Description: URL of the service endpoint
+    Value:
+      Fn::Join:
+        - ""
+        - - https://
+          - Ref: ApiGatewayRestApi
+          - ".execute-api."
+          - Ref: AWS::Region
+          - "."
+          - Ref: AWS::URLSuffix
+          - "/dev"

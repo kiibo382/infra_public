@@ -8,7 +8,6 @@ import boto3
 s3 = boto3.client("s3")
 comprehend = boto3.client("comprehend")
 TOPIC_ARN = os.environ["SNS_TOPIC_ARN"]
-RUNNING_RECORDS_BUCKET = os.environ["RUNNING_RECORDS_BUCKET"]
 
 
 def lambda_handler(event, context):
@@ -59,6 +58,7 @@ def lambda_handler(event, context):
         sns = boto3.resource("sns")
         topic = sns.Topic(TOPIC_ARN)
         message = {
+            "default": "hello",
             "record_path": output_key.replace("-comprehend.json", ".wav"),
             "result_path": output_key.replace("-comprehend.json", ""),
         }

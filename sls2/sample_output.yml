@@ -1,0 +1,7 @@
+Outputs:
+  UsersTableArn:
+    Description: The ARN for the User's Table
+    Value:
+      "Fn::GetAtt": [usersTable, Arn]
+    Export:
+      Name: ${self:service}:${opt:stage}:UsersTableArn
