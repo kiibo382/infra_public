@@ -57,8 +57,14 @@ def lambda_handler(event, context):
     try:
         sns = boto3.resource("sns")
         topic = sns.Topic(TOPIC_ARN)
+        message_text = (
+            "records_path: "
+            + output_key.replace("-comprehend.json", ".wav")
+            + "\nresults_path: "
+            + output_key.replace("-comprehend.json", "")
+        )
         message = {
-            "default": "hello",
+            "default": message_text,
             "record_path": output_key.replace("-comprehend.json", ".wav"),
             "result_path": output_key.replace("-comprehend.json", ""),
         }

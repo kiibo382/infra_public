@@ -102,6 +102,8 @@ package:
     - "*.sh"
     - .gitignore
     - node_modules
+    - package.json
+    - package-lock.json
 
 functions:
   transcribe1:
