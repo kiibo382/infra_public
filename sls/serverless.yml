@@ -66,9 +66,7 @@ provider:
             - "Ref": "AWS::Region"
             - "Ref": "AWS::AccountId"
             - ${self:provider.environment.COMPLETE_SNS_TOPIC}
-  # s3:
-  #   port: 4569
-  #   directory: sample
+
 custom:
   apigwBinary:
     types:
