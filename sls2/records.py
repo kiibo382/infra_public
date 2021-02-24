@@ -40,3 +40,35 @@ def get(event, context):
     except Exception as e:
         print(e)
         raise e
+
+
+# def post(event, context):
+#     fp = io.BytesIO(base64.b64decode(event["body"]))
+#     environ = {"REQUEST_METHOD": "POST"}
+#     event["headers"] = {
+#         "content-type": event["headers"]["Content-Type"],
+#         "content-length": event["headers"]["Content-Length"],
+#     }
+
+#     print(fp)
+#     print(event["headers"])
+#     fs = FieldStorage(fp=fp, environ=environ, headers=event["headers"])
+
+#     print(fs)
+#     print(type(fs))
+#     for f in fs.list:
+#         print(f.name, f.filename, f.type, f.value)
+#     try:
+#         # records_data = s3.put_object(
+#         #     Bucket=records_bucket, Body=body, Key=key, ContentType="audio/mpeg"
+#         # )
+#         return {
+#             "statusCode": 201,
+#             "headers": {"Content-Type": "application/json"},
+#             "body": json.dumps({"message": "ok", "data": event}),
+#             "isBase64Encode": False,
+#         }
+
+#     except Exception as e:
+#         print(e)
+#         raise e

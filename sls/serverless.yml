@@ -1,7 +1,7 @@
-service: kizawa-sample
+service: ${env:STACK_NAME}
 
 frameworkVersion: "2"
-# useDotenv: false
+useDotenv: true
 
 plugins:
   - serverless-offline
@@ -74,8 +74,6 @@ custom:
   remover:
     buckets:
       - ${self:provider.environment.DEPLOYMENT_BUCKET_NAME}
-      - ${self:provider.environment.RECORDS_BUCKET_NAME1}
-      - ${self:provider.environment.RECORDS_BUCKET_NAME2}
       - ${self:provider.environment.TRANSCRIBE_BUCKET_NAME}
       - ${self:provider.environment.COMPREHEND_BUCKET_NAME}
 
@@ -86,8 +84,8 @@ custom:
       alarm:
         topic: ${self:service}-${opt:stage, self:provider.stage}-alarm
         notifications:
-          - protocol: email
-            endpoint: kizawa_shota@comsq.com
+          - protocol: ${env:SNS_PROTOCOL}
+            endpoint: ${env:SNS_EMAIL}
     alarms:
       - functionErrors
       - functionThrottles
@@ -98,6 +96,7 @@ package:
     - sample
     - __pycache__
     - "*.sh"
+    - .git
     - .gitignore
     - node_modules
     - package.json
@@ -142,7 +141,7 @@ functions:
           rules:
             - suffix: -transcribe.json
   results:
-    handler: test_results.get
+    handler: results.get
     memorySize: 512
     events:
       - http:
@@ -153,18 +152,12 @@ functions:
               paths:
                 records_bucket: true
   records_get:
-    handler: test_records.get
+    handler: records.get
     memorySize: 512
     events:
       - http:
           path: records/{records_bucket}/{proxy+}
           method: get
-  # records_post:
-  #   handler: test_records.post
-  #   events:
-  #     - http:
-  #         path: records
-  #         method: post
 
 resources:
   Resources:
@@ -185,5 +178,5 @@ resources:
       Properties:
         TopicName: ${self:provider.environment.COMPLETE_SNS_TOPIC}
         Subscription:
-          - Protocol: email
-            Endpoint: kizawa_shota@comsq.com
+          - protocol: ${env:SNS_PROTOCOL}
+            endpoint: ${env:SNS_EMAIL}
