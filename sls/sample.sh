@@ -1,1 +1,0 @@
-echo ${STACK_NAME}-${STAGE}

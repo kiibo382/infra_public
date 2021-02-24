@@ -18,6 +18,9 @@ var/
 
 # Serverless directories
 .serverless
+
+# other
 node_modules
+__pycache__
 .env
 .envrc

@@ -1,4 +1,3 @@
-import json
 import datetime
 
 a = {
@@ -24,6 +23,3 @@ a = {
     "Metadata": {},
     "Body": "<botocore.response.StreamingBody object at 0x7fda2deeda30>",
 }
-
-b = json.dumps(a)
-print(b)

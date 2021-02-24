@@ -1,1 +1,1 @@
-aws cloudformation delete-stack --stack-name kizawa-sample-dev
+aws cloudformation delete-stack --stack-name ${SERVICE_NAME}-${STAGE}
