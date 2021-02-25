@@ -9,7 +9,13 @@ COMPREHEND_BUCKET_NAME = os.environ["COMPREHEND_BUCKET_NAME"]
 
 
 def get(event, context):
-    s3 = boto3.resource("s3")
+    s3 = boto3.resource(
+        "s3",
+        endpoint_url="http://localhost:4569",
+        aws_access_key_id="S3RVER",
+        aws_secret_access_key="S3RVER",
+        region_name="ap-northeast-1",
+    )
     records_bucket = event["pathParameters"]["records_bucket"]
     key = event["pathParameters"]["proxy"]
 

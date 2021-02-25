@@ -4,6 +4,8 @@ frameworkVersion: "2"
 useDotenv: true
 
 plugins:
+  - serverless-offline
+  - serverless-s3-local
   - serverless-deployment-bucket
   - serverless-apigw-binary
   - serverless-plugin-aws-alerts
@@ -27,6 +29,12 @@ provider:
     shouldStartNameWithService: true
   lambdaHashingVersion: 20201221
   logRetentionInDays: 30
+  # logs:
+  #   restApi:
+  #     accessLogging: false
+  #     executionLogging: true
+  #     level: ERROR
+  #     fullExecutionData: false
   iam:
     role:
       statements:
@@ -78,6 +86,8 @@ custom:
 
 package:
   exclude:
+    - buckets
+    - sample
     - __pycache__
     - "*.sh"
     - .git
@@ -94,7 +104,6 @@ functions:
       - s3:
           bucket: ${self:provider.environment.RECORDS_BUCKET_NAME1}
           event: s3:ObjectCreated:*
-          existing: true
           rules:
             - suffix: .wav
   transcribe2:
@@ -104,7 +113,6 @@ functions:
       - s3:
           bucket: ${self:provider.environment.RECORDS_BUCKET_NAME2}
           event: s3:ObjectCreated:*
-          existing: true
           rules:
             - suffix: .wav
   comprehend:
@@ -145,14 +153,6 @@ functions:
 
 resources:
   Resources:
-    S3AudioBucket1:
-      Type: "AWS::S3::Bucket"
-      Properties:
-        BucketName: ${self:provider.environment.RECORDS_BUCKET_NAME1}
-    S3AudioBucket2:
-      Type: "AWS::S3::Bucket"
-      Properties:
-        BucketName: ${self:provider.environment.RECORDS_BUCKET_NAME2}
     S3ComprehendBucket:
       Type: "AWS::S3::Bucket"
       Properties:

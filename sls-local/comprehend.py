@@ -37,7 +37,7 @@ def lambda_handler(event, context):
         print(e)
         raise e
 
-    COMPREHEND_BUCKET_NAME = os.environ["COMPREHEND_BUCKET_NAME"]
+    COMPREHEND_BUCKET = os.environ["COMPREHEND_BUCKET_NAME"]
     output_key = input_key.replace("transcribe", "comprehend")
     res_dict = {
         "Sentiment": sentiment_response["Sentiment"],
@@ -47,7 +47,7 @@ def lambda_handler(event, context):
 
     try:
         s3.put_object(
-            Body=json.dumps(res_dict), Bucket=COMPREHEND_BUCKET_NAME, Key=output_key
+            Body=json.dumps(res_dict), Bucket=COMPREHEND_BUCKET, Key=output_key
         )
     except Exception as e:
         print("Error upload comprehend data into s3 bucket.")
