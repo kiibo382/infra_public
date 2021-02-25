@@ -150,6 +150,13 @@ functions:
       - http:
           path: records/{records_bucket}/{proxy+}
           method: get
+  records_post:
+    handler: records.post
+    memorySize: 512
+    events:
+      - http:
+          path: records
+          method: post
 
 resources:
   Resources:
