@@ -1,8 +1,10 @@
 import base64
 import datetime
+import io
 import json
 import os
 import urllib.parse
+from cgi import FieldStorage
 
 import boto3
 
@@ -43,6 +45,13 @@ def get(event, context):
 
 
 # def post(event, context):
+#     s3 = boto3.resource(
+#         "s3",
+#         endpoint_url="http://localhost:4569",
+#         aws_access_key_id="S3RVER",
+#         aws_secret_access_key="S3RVER",
+#         region_name="ap-northeast-1",
+#     )
 #     fp = io.BytesIO(base64.b64decode(event["body"]))
 #     environ = {"REQUEST_METHOD": "POST"}
 #     event["headers"] = {
@@ -52,6 +61,7 @@ def get(event, context):
 
 #     print(fp)
 #     print(event["headers"])
+
 #     fs = FieldStorage(fp=fp, environ=environ, headers=event["headers"])
 
 #     print(fs)
@@ -59,9 +69,8 @@ def get(event, context):
 #     for f in fs.list:
 #         print(f.name, f.filename, f.type, f.value)
 #     try:
-#         # records_data = s3.put_object(
-#         #     Bucket=records_bucket, Body=body, Key=key, ContentType="audio/mpeg"
-#         # )
+#         # s3.Object(bucket_name, key)
+#         # records_data = s3.upload_fileobj(fs)
 #         return {
 #             "statusCode": 201,
 #             "headers": {"Content-Type": "application/json"},
