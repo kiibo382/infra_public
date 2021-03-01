@@ -5,7 +5,6 @@ import json
 import os
 import urllib.parse
 from cgi import FieldStorage
-
 import boto3
 
 
@@ -51,7 +50,10 @@ def post(event, context):
         aws_secret_access_key="S3RVER",
         region_name="ap-northeast-1",
     )
-    fp = io.BytesIO(base64.b64decode(event["body"]))
+
+    encode_body = event["body"].encode()
+    base64_body = base64.b64decode(encode_body)
+    fp = io.BytesIO(base64_body)
     environ = {"REQUEST_METHOD": "POST"}
     event["headers"] = {
         "content-type": event["headers"]["Content-Type"],
@@ -59,12 +61,10 @@ def post(event, context):
     }
 
     print(fp)
-    print(event["headers"])
 
     fs = FieldStorage(fp=fp, environ=environ, headers=event["headers"])
-
     print(fs)
-    print(type(fs))
+
     for f in fs.list:
         print(f.name, f.filename, f.type, f.value)
     try:
@@ -73,7 +73,7 @@ def post(event, context):
         return {
             "statusCode": 201,
             "headers": {"Content-Type": "application/json"},
-            "body": json.dumps({"message": "ok", "data": event}),
+            "body": json.dumps({"message": "ok", "data": event["body"]}),
             "isBase64Encode": False,
         }
 
