@@ -23,3 +23,33 @@ a = {
     "Metadata": {},
     "Body": "<botocore.response.StreamingBody object at 0x7fda2deeda30>",
 }
+{
+    "transcirbe_result": [
+        {
+            "transcript": "\u30cf\u30f3\u30ba\u30aa\u30f3 \u9806\u8abf \u3067\u3059 \u304b \u624b \u3092 \u52d5\u304b\u3059 \u306e \u697d\u3057\u3044 \u3067\u3059 \u3088 \u306d"
+        }
+    ],
+    "comprehend_result": {
+        "Sentiment": "POSITIVE",
+        "SentimentScore": {
+            "Positive": 0.9825301766395569,
+            "Negative": 0.00034822686575353146,
+            "Neutral": 0.017063843086361885,
+            "Mixed": 5.778960621682927e-05,
+        },
+        "KeyPhrases": [
+            {
+                "Score": 1.0,
+                "Text": "\u30cf\u30f3\u30ba\u30aa\u30f3",
+                "BeginOffset": 0,
+                "EndOffset": 5,
+            },
+            {
+                "Score": 0.9999998807907104,
+                "Text": "\u624b",
+                "BeginOffset": 14,
+                "EndOffset": 15,
+            },
+        ],
+    },
+}

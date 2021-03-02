@@ -85,20 +85,22 @@ custom:
       - functionThrottles
 
 package:
-  exclude:
-    - buckets
-    - sample
-    - __pycache__
-    - "*.sh"
-    - .git
-    - .gitignore
-    - node_modules
-    - package.json
-    - package-lock.json
+  include:
+    - src/*
+  # exclude:
+  #   - buckets
+  #   - sample
+  #   - __pycache__
+  #   - "*.sh"
+  #   - .git
+  #   - .gitignore
+  #   - node_modules
+  #   - package.json
+  #   - package-lock.json
 
 functions:
   transcribe1:
-    handler: transcribe.lambda_handler
+    handler: src/transcribe.lambda_handler
     memorySize: 512
     events:
       - s3:
@@ -107,7 +109,7 @@ functions:
           rules:
             - suffix: .wav
   transcribe2:
-    handler: transcribe.lambda_handler
+    handler: src/transcribe.lambda_handler
     memorySize: 512
     events:
       - s3:
@@ -116,7 +118,7 @@ functions:
           rules:
             - suffix: .wav
   comprehend:
-    handler: comprehend.lambda_handler
+    handler: src/comprehend.lambda_handler
     memorySize: 512
     environment:
       SNS_TOPIC_ARN:
@@ -133,7 +135,7 @@ functions:
           rules:
             - suffix: -transcribe.json
   results:
-    handler: results.get
+    handler: src/results.get
     memorySize: 512
     events:
       - http:
@@ -144,19 +146,12 @@ functions:
               paths:
                 records_bucket: true
   records_get:
-    handler: records.get
+    handler: src/records.get
     memorySize: 512
     events:
       - http:
           path: records/{records_bucket}/{proxy+}
           method: get
-  records_post:
-    handler: records.post
-    memorySize: 512
-    events:
-      - http:
-          path: records
-          method: post
 
 resources:
   Resources:
