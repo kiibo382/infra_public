@@ -1,0 +1,10 @@
+- Resource: !Sub arn:aws:ecr:ap-northeast-1:248968340359:repository/${Repository}
+  Effect: Allow
+  Action:
+    - ecr:GetDownloadUrlForLayer
+    - ecr:BatchGetImage
+    - ecr:BatchCheckLayerAvailability
+    - ecr:PutImage
+    - ecr:InitiateLayerUpload
+    - ecr:UploadLayerPart
+    - ecr:CompleteLayerUpload
