@@ -1,6 +1,4 @@
----
 AWSTemplateFormatVersion: 2010-09-09
-
 
 Parameters:
   Cluster:
@@ -17,14 +15,14 @@ Parameters:
       - Fargate
       - EC2
 
-  SourceSecurityGroup:
+  TargetGroup:
+    Type: String
+
+  SecurityGroup:
     Type: AWS::EC2::SecurityGroup::Id
 
-  Subnet1:
-    Type: AWS::EC2::Subnet::Id
-
-  Subnet2:
-    Type: AWS::EC2::Subnet::Id
+  Subnets:
+    Type: List<AWS::EC2::Subnet::Id>
 
 
 Conditions:
@@ -66,9 +64,12 @@ Resources:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
           SecurityGroups:
-            - !Ref SourceSecurityGroup
-          Subnets: 
-            - !Ref Subnet1
+            - !Ref SecurityGroup
+          Subnets: !Ref Subnets
+      LoadBalancers:
+        - ContainerName: simple-app
+          ContainerPort: 80
+          TargetGroupArn: !Ref TargetGroup
 
   EC2Service:
     Type: AWS::ECS::Service
@@ -78,31 +79,10 @@ Resources:
       DesiredCount: !Ref DesiredCount
       TaskDefinition: !Ref TaskDefinition
       LaunchType: EC2
-
-  FargateService2:
-    Type: AWS::ECS::Service
-    Condition: Fargate
-    Properties:
-      Cluster: !Ref Cluster
-      DesiredCount: !Ref DesiredCount
-      TaskDefinition: !Ref TaskDefinition
-      LaunchType: FARGATE
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
-          SecurityGroups:
-            - !Ref SourceSecurityGroup
-          Subnets: 
-            - !Ref Subnet2
-
-  EC2Service2:
-    Type: AWS::ECS::Service
-    Condition: EC2
-    Properties:
-      Cluster: !Ref Cluster
-      DesiredCount: !Ref DesiredCount
-      TaskDefinition: !Ref TaskDefinition
-      LaunchType: EC2
+      LoadBalancers:
+        - ContainerName: simple-app
+          ContainerPort: 80
+          TargetGroupArn: !Ref TargetGroup
 
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
@@ -116,21 +96,15 @@ Resources:
       ExecutionRoleArn: !Ref TaskExecutionRole
       ContainerDefinitions:
         - Name: simple-app
-          Image: 248968340359.dkr.ecr.ap-northeast-1.amazonaws.com/repository-0i8cu0hap6ch:e70d0926
+          Image: amazon/amazon-ecs-sample
           Essential: true
           Memory: 256
           MountPoints:
             - SourceVolume: my-vol
               ContainerPath: /var/www/my-vol
           PortMappings:
-            - ContainerPort: 55672
-              HostPort: 55672
-            - ContainerPort: 15672
-              HostPort: 15672
-            - ContainerPort: 25672
-              HostPort: 25672
-            - ContainerPort: 4369
-              HostPort: 4369
+            - HostPort: 80
+              ContainerPort: 80
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -155,5 +129,3 @@ Resources:
 Outputs:
   Service:
     Value: !If [ Fargate, !Ref FargateService, !Ref EC2Service ]
-  Service2:
-    Value: !If [ Fargate, !Ref FargateService2, !Ref EC2Service2 ]

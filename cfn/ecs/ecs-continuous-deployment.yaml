@@ -1,13 +1,4 @@
----
 AWSTemplateFormatVersion: 2010-09-09
-
-
-Description: >
-  This template shows how to use AWS CodePipeline and AWS CodeBuild to build an
-  automated continuous deployment pipeline to Amazon Elastic Container Service
-  (Amazon ECS) using clusters powered by AWS Fargate or Amazon Elastic Compute
-  Cloud (Amazon EC2).
-
 
 Parameters:
   LaunchType:
@@ -24,18 +15,23 @@ Parameters:
 
   TemplateBucket:
     Type: String
-    Default: cf-templates-1bplpkf62jjyg-ap-northeast-1
     Description: >
       The S3 bucket from which to fetch the templates used by this stack.
-    
+
   CodeCommitRepositoryName:
     Type: String
-    Default: kizawa-codecommit
+
+  ClusterSize:
+    Type: Number
+    Default: 2
 
   DesiredCount:
     Type: Number
     Default: 1
 
+  KeyName:
+    Description: The EC2 Key Pair to allow SSH access to the instance
+    Type: "AWS::EC2::KeyPair::KeyName"
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -69,9 +65,11 @@ Resources:
       TemplateURL: !Sub "https://s3.amazonaws.com/${TemplateBucket}/ecs-cluster.yaml"
       Parameters:
         LaunchType: !Ref LaunchType
-        SourceSecurityGroup: !GetAtt LoadBalancer.Outputs.SecurityGroup
+        SecurityGroup: !GetAtt LoadBalancer.Outputs.SecurityGroup
         Subnets: !GetAtt VPC.Outputs.Subnets
         VpcId: !GetAtt VPC.Outputs.VpcId
+        ClusterSize: !Ref ClusterSize
+        KeyName: !Ref KeyName
 
   DeploymentPipeline:
     Type: AWS::CloudFormation::Stack
@@ -85,7 +83,7 @@ Resources:
   LoadBalancer:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub "https://s3.amazonaws.com/${TemplateBucket}/nlb.yaml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${TemplateBucket}/load-balancer.yaml"
       Parameters:
         LaunchType: !Ref LaunchType
         Subnets: !GetAtt VPC.Outputs.Subnets
@@ -109,7 +107,7 @@ Resources:
         Cluster: !GetAtt Cluster.Outputs.ClusterName
         LaunchType: !Ref LaunchType
         TargetGroup: !GetAtt LoadBalancer.Outputs.TargetGroup
-        SourceSecurityGroup: !GetAtt LoadBalancer.Outputs.SecurityGroup
+        SecurityGroup: !GetAtt LoadBalancer.Outputs.SecurityGroup
         Subnets: !GetAtt VPC.Outputs.Subnets
         DesiredCount: !Ref DesiredCount
 

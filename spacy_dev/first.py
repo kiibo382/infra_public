@@ -12,11 +12,3 @@ for ent in doc.ents:
 print(type(doc.ents))
 for i in dir(doc):
     print(i)
-
-# print(type(doc.vector))
-# print(type(doc.has_annotation("SENT_START")))
-# print(type(doc.has_annotation("TAG")))
-# print(type(doc.lang))
-# print(type(doc.mem))
-# print(type(doc.cats))
-# print(doc.cats)

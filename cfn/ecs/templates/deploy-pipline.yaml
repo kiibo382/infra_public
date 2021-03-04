@@ -1,6 +1,4 @@
----
 AWSTemplateFormatVersion: 2010-09-09
-
 
 Parameters:
   CodeCommitRepositoryName:
@@ -10,9 +8,6 @@ Parameters:
     Type: String
 
   Service:
-    Type: String
-
-  Service2:
     Type: String
 
 
@@ -44,6 +39,7 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                   - ecr:GetAuthorizationToken
+                  - secretsmanager:GetSecretValue
               - Resource: !Sub arn:aws:s3:::${ArtifactBucket}/*
                 Effect: Allow
                 Action:
@@ -96,25 +92,6 @@ Resources:
                   - ecs:UpdateService
                   - codebuild:StartBuild
                   - codebuild:BatchGetBuilds
-                  - codebuild:StartBuild
-                  - codebuild:StopBuild
-                  - codebuild:BatchGet*
-                  - codebuild:Get*
-                  - codebuild:List*
-                  - codecommit:GetBranch
-                  - codecommit:GetCommit
-                  - codecommit:GetRepository
-                  - codecommit:ListBranches
-                  - codecommit:GetUploadArchiveStatus
-                  - codecommit:UploadArchive
-                  - codecommit:CancelUploadArchive
-                  - codedeploy:CreateDeployment
-                  - codedeploy:GetApplicationRevision
-                  - codedeploy:GetDeployment
-                  - codedeploy:GetDeploymentConfig
-                  - codedeploy:RegisterApplicationRevision
-                  - s3:GetBucketLocation
-                  - s3:ListAllMyBuckets
                   - iam:PassRole
 
   ArtifactBucket:
@@ -209,21 +186,7 @@ Resources:
               InputArtifacts:
                 - Name: BuildOutput
               RunOrder: 1
-        - Name: Deploy2
-          Actions:
-            - Name: Deploy2
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Version: 1
-                Provider: ECS
-              Configuration:
-                ClusterName: !Ref Cluster
-                ServiceName: !Ref Service2
-                FileName: images.json
-              InputArtifacts:
-                - Name: BuildOutput
-              RunOrder: 1
+
 
 Outputs:
   PipelineUrl:

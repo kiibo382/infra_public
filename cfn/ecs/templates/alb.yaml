@@ -1,6 +1,4 @@
----
 AWSTemplateFormatVersion: 2010-09-09
-
 
 Parameters:
   LaunchType:
@@ -29,12 +27,8 @@ Resources:
       SecurityGroupIngress:
         - CidrIp: "0.0.0.0/0"
           IpProtocol: tcp
-          FromPort: 5672
-          ToPort: 5672
-        - CidrIp: "0.0.0.0/0"
-          IpProtocol: tcp
-          FromPort: 15672
-          ToPort: 15672
+          FromPort: 80
+          ToPort: 80
       VpcId: !Ref VpcId
 
   LoadBalancer:
@@ -48,7 +42,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       LoadBalancerArn: !Ref LoadBalancer
-      Port: 5672
+      Port: 80
       Protocol: HTTP
       DefaultActions:
         - Type: forward
@@ -59,7 +53,7 @@ Resources:
     DependsOn: LoadBalancer
     Properties:
       VpcId: !Ref VpcId
-      Port: 5672
+      Port: 80
       Protocol: HTTP
       Matcher:
         HttpCode: 200-299

@@ -1,6 +1,4 @@
----
 AWSTemplateFormatVersion: 2010-09-09
-
 
 Parameters:
   LaunchType:
@@ -18,25 +16,22 @@ Parameters:
     Type: Number
     Default: 2
 
-  Subnet1:
-    Type: AWS::EC2::Subnet::Id
-  
-  Subnet2:
-    Type: AWS::EC2::Subnet::Id
+  Subnets:
+    Type: List<AWS::EC2::Subnet::Id>
 
-  SourceSecurityGroup:
+  SecurityGroup:
     Type: AWS::EC2::SecurityGroup::Id
 
   VpcId:
     Type: AWS::EC2::VPC::Id
-  
+
   KeyName:
-    Type: AWS::EC2::KeyPair::KeyName
+    Description: The EC2 Key Pair to allow SSH access to the instance
+    Type: "AWS::EC2::KeyPair::KeyName"
 
 
 Conditions:
   EC2: !Equals [ !Ref LaunchType, "EC2" ]
-
 
 Mappings:
   AWSRegionToAMI:
@@ -71,9 +66,8 @@ Mappings:
     us-west-2:
       AMI: ami-decc7fa6
 
-
 Resources:
-  ECSRole:
+  EC2Role:
     Type: AWS::IAM::Role
     Condition: EC2
     Properties:
@@ -93,35 +87,7 @@ Resources:
     Properties:
       Path: /
       Roles:
-        - !Ref ECSRole
-
-  SecurityGroup:
-    Type: "AWS::EC2::SecurityGroup"
-    Condition: EC2
-    Properties:
-      GroupDescription: !Sub ${AWS::StackName}-hosts
-      SecurityGroupIngress:
-        - CidrIp: "0.0.0.0/0"
-          IpProtocol: tcp
-          FromPort: 5672
-          ToPort: 5672
-        - CidrIp: "0.0.0.0/0"
-          IpProtocol: tcp
-          FromPort: 15672
-          ToPort: 15672
-        - CidrIp: "0.0.0.0/0"
-          IpProtocol: tcp
-          FromPort: 25672
-          ToPort: 25672
-        - CidrIp: "0.0.0.0/0"
-          IpProtocol: tcp
-          FromPort: 4369
-          ToPort: 4369
-        - CidrIp: "0.0.0.0/0"
-          IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-      VpcId: !Ref VpcId
+        - !Ref EC2Role
 
   Cluster:
     Type: AWS::ECS::Cluster
@@ -132,9 +98,7 @@ Resources:
     Type: AWS::AutoScaling::AutoScalingGroup
     Condition: EC2
     Properties:
-      VPCZoneIdentifier:
-        - !Ref Subnet1
-        - !Ref Subnet2
+      VPCZoneIdentifier: !Ref Subnets
       LaunchConfigurationName: !Ref LaunchConfiguration
       MinSize: !Ref ClusterSize
       MaxSize: !Ref ClusterSize
@@ -189,17 +153,15 @@ Resources:
       ImageId: !FindInMap [ AWSRegionToAMI, !Ref "AWS::Region", AMI ]
       InstanceType: !Ref InstanceType
       IamInstanceProfile: !Ref InstanceProfile
-      KeyName: !Ref KeyName
       SecurityGroups:
         - !Ref SecurityGroup
+      KeyName: !Ref KeyName
       UserData:
         "Fn::Base64": !Sub |
           #!/bin/bash
           yum install -y aws-cfn-bootstrap
-          sudo yum update -y
           /opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource LaunchConfiguration
           /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource AutoScalingGroup
-
 
 Outputs:
   ClusterName:
