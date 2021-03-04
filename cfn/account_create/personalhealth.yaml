@@ -1,0 +1,98 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "enable personal health dashboard and alart"
+Parameters:
+  TargetWorkspaceId:
+    Type: String
+    Description: Chatbot Workspace ID
+  TargetChannelId:
+    Type: String
+    Description: Slack Channel ID
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: PersonalHealthDashboard Configuration
+        Parameters:
+          - TargetWorkspaceId
+          - TargetChannelId
+Resources:
+  SNST:
+    Type: "AWS::SNS::Topic"
+    Properties:
+      TopicName: PersonalHealthTopic
+  SNSTP:
+    Type: "AWS::SNS::TopicPolicy"
+    Properties:
+      PolicyDocument:
+        Id: default_policy_ID
+        Version: "2012-10-17"
+        Statement:
+          - Sid: default_statement_ID
+            Effect: Allow
+            Principal:
+              AWS: "*"
+            Action:
+              - "SNS:GetTopicAttributes"
+              - "SNS:SetTopicAttributes"
+              - "SNS:AddPermission"
+              - "SNS:RemovePermission"
+              - "SNS:DeleteTopic"
+              - "SNS:Subscribe"
+              - "SNS:ListSubscriptionsByTopic"
+              - "SNS:Publish"
+              - "SNS:Receive"
+            Resource: !Ref SNST
+            Condition:
+              StringEquals:
+                "AWS:SourceOwner": !Ref "AWS::AccountId"
+          - Sid: AWSEvents_AlertHealthDashboardFindings_Id123
+            Effect: Allow
+            Principal:
+              Service:
+                - "events.amazonaws.com"
+            Action: "sns:Publish"
+            Resource: !Ref SNST
+      Topics:
+        - !Ref SNST
+  ER:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Name: AlertPersonalHealthFindings
+      Description: "Alert to SNS topic when find Personal Health Dashboard"
+      EventPattern: { "source": ["aws.health"] }
+      Targets:
+        - Arn: !Ref SNST
+          Id: Id123
+  Chatbot:
+    Type: AWS::Chatbot::SlackChannelConfiguration
+    Properties:
+      ConfigurationName: PesonalHealthChatbot
+      IamRoleArn: !GetAtt ChatbotIamRole.Arn
+      LoggingLevel: INFO
+      SlackChannelId: !Ref TargetChannelId
+      SlackWorkspaceId: !Ref TargetWorkspaceId
+      SnsTopicArns:
+        - !Ref SNST
+  ChatbotIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: personalhealth-chatbot-iam-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: chatbot.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: personalhealth-chatbot-iam-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudwatch:Describe*
+                  - cloudwatch:Get*
+                  - cloudwatch:List*
+                Resource:
+                  - "*"

@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "enable guardduty and set alert"
+Parameters:
+  TargetWorkspaceId:
+    Type: String
+    Description: Chatbot Workspace ID
+  TargetChannelId:
+    Type: String
+    Description: Slack Channel ID
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Guard Duty Configuration
+        Parameters:
+          - TargetWorkspaceId
+          - TargetChannelId
+Resources:
+  GDD:
+    Type: "AWS::GuardDuty::Detector"
+    Properties:
+      Enable: true
+  SNST:
+    Type: "AWS::SNS::Topic"
+    Properties:
+      TopicName: GuardDutyTopic
+  SNSTP:
+    Type: "AWS::SNS::TopicPolicy"
+    Properties:
+      PolicyDocument:
+        Id: default_policy_ID
+        Version: "2012-10-17"
+        Statement:
+          - Sid: default_statement_ID
+            Effect: Allow
+            Principal:
+              AWS: "*"
+            Action:
+              - "SNS:GetTopicAttributes"
+              - "SNS:SetTopicAttributes"
+              - "SNS:AddPermission"
+              - "SNS:RemovePermission"
+              - "SNS:DeleteTopic"
+              - "SNS:Subscribe"
+              - "SNS:ListSubscriptionsByTopic"
+              - "SNS:Publish"
+              - "SNS:Receive"
+            Resource: !Ref SNST
+            Condition:
+              StringEquals:
+                "AWS:SourceOwner": !Ref "AWS::AccountId"
+          - Sid: AWSEvents_AlertGuardDutyFindings_Id123
+            Effect: Allow
+            Principal:
+              Service:
+                - "events.amazonaws.com"
+            Action: "sns:Publish"
+            Resource: !Ref SNST
+      Topics:
+        - !Ref SNST
+  ER:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Name: AlertGuardDutyFindings
+      Description: "Alert to SNS topic when find threats by GuardDuty"
+      EventPattern:
+        { "source": ["aws.guardduty"], "detail-type": ["GuardDuty Finding"] }
+      Targets:
+        - Arn: !Ref SNST
+          Id: Id123
+  Chatbot:
+    Type: AWS::Chatbot::SlackChannelConfiguration
+    Properties:
+      ConfigurationName: GuardDutyChatbot
+      IamRoleArn: !GetAtt ChatbotIamRole.Arn
+      LoggingLevel: INFO
+      SlackChannelId: !Ref TargetChannelId
+      SlackWorkspaceId: !Ref TargetWorkspaceId
+      SnsTopicArns:
+        - !Ref SNST
+  ChatbotIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: guardduty-chatbot-iam-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: chatbot.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: guardduty-chatbot-iam-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudwatch:Describe*
+                  - cloudwatch:Get*
+                  - cloudwatch:List*
+                Resource:
+                  - "*"
