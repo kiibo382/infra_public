@@ -6,3 +6,4 @@ __pycache__
 ecs-cfn*
 kizawa-codecommit*
 sls-backup
+sample-res.py
