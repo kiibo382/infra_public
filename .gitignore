@@ -3,3 +3,7 @@
 terraform.tfvars
 node_modules
 __pycache__
+ecs-cfn*
+kizawa-codecommit*
+sls-backup
+sample-res.py
