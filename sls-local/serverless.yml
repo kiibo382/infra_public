@@ -6,9 +6,7 @@ useDotenv: true
 plugins:
   - serverless-offline
   - serverless-s3-local
-  - serverless-deployment-bucket
   - serverless-apigw-binary
-  - serverless-plugin-aws-alerts
 
 provider:
   name: aws
@@ -17,24 +15,14 @@ provider:
   region: ${env:REGION}
   profile: ${env:PROFILE}
   environment:
-    DEPLOYMENT_BUCKET_NAME: ${self:service}-${opt:stage, self:provider.stage}-deployment-bucket
     RECORDS_BUCKET_NAME1: ${env:RECORDS_BUCKET_NAME1}
     RECORDS_BUCKET_NAME2: ${env:RECORDS_BUCKET_NAME2}
     TRANSCRIBE_BUCKET_NAME: ${self:service}-${opt:stage, self:provider.stage}-transcribe-bucket
     COMPREHEND_BUCKET_NAME: ${self:service}-${opt:stage, self:provider.stage}-comprehend-bucket
-    COMPLETE_SNS_TOPIC: ${self:service}-${opt:stage, self:provider.stage}-complete-topic
-  deploymentBucket:
-    name: ${self:provider.environment.DEPLOYMENT_BUCKET_NAME}
   apiGateway:
     shouldStartNameWithService: true
   lambdaHashingVersion: 20201221
   logRetentionInDays: 30
-  # logs:
-  #   restApi:
-  #     accessLogging: false
-  #     executionLogging: true
-  #     level: ERROR
-  #     fullExecutionData: false
   iam:
     role:
       statements:
@@ -56,51 +44,29 @@ provider:
             - "comprehend:*"
           Resource:
             - "*"
-        - Effect: Allow
-          Action:
-            - "SNS:Publish"
-          Resource:
-            Fn::Join:
-              - ":"
-              - - "arn:aws:sns"
-                - "Ref": "AWS::Region"
-                - "Ref": "AWS::AccountId"
-                - ${self:provider.environment.COMPLETE_SNS_TOPIC}
 
 custom:
   apigwBinary:
     types:
       - "*/*"
-  alerts:
-    stages:
-      - dev
-    topics:
-      alarm:
-        topic: ${self:service}-${opt:stage, self:provider.stage}-alarm
-        notifications:
-          - protocol: ${env:SNS_PROTOCOL}
-            endpoint: ${env:SNS_ENDPOINT}
-    alarms:
-      - functionErrors
-      - functionThrottles
+  authorizer:
+    name: authorization
+    type: "TOKEN"
+    identitySource: method.request.header.Authorization
+    resultTtlInSeconds: 0
 
 package:
   include:
     - src/*
-  # exclude:
-  #   - buckets
-  #   - sample
-  #   - __pycache__
-  #   - "*.sh"
-  #   - .git
-  #   - .gitignore
-  #   - node_modules
-  #   - package.json
-  #   - package-lock.json
+  exclude:
+    - node_modules
+    - "*.sh"
+    - "*.dio"
+    - "*.json"
 
 functions:
   transcribe1:
-    handler: src/transcribe.lambda_handler
+    handler: src/transcribe.handler
     memorySize: 512
     events:
       - s3:
@@ -109,7 +75,7 @@ functions:
           rules:
             - suffix: .wav
   transcribe2:
-    handler: src/transcribe.lambda_handler
+    handler: src/transcribe.handler
     memorySize: 512
     events:
       - s3:
@@ -118,16 +84,8 @@ functions:
           rules:
             - suffix: .wav
   comprehend:
-    handler: src/comprehend.lambda_handler
+    handler: src/comprehend.handler
     memorySize: 512
-    environment:
-      SNS_TOPIC_ARN:
-        Fn::Join:
-          - ":"
-          - - "arn:aws:sns"
-            - "Ref": "AWS::Region"
-            - "Ref": "AWS::AccountId"
-            - ${self:provider.environment.COMPLETE_SNS_TOPIC}
     events:
       - s3:
           bucket: ${self:provider.environment.TRANSCRIBE_BUCKET_NAME}
@@ -139,19 +97,25 @@ functions:
     memorySize: 512
     events:
       - http:
-          path: /results/{records_bucket}/{proxy+}
+          path: results/{records_bucket}/{proxy+}
           method: get
           request:
             parameters:
               paths:
                 records_bucket: true
-  records_get:
+          authorizer: ${self:custom.authorizer}
+
+  records-get:
     handler: src/records.get
     memorySize: 512
     events:
       - http:
           path: records/{records_bucket}/{proxy+}
           method: get
+          authorizer: ${self:custom.authorizer}
+
+  authorization:
+    handler: src/auth.authorization
 
 resources:
   Resources:
@@ -159,10 +123,3 @@ resources:
       Type: "AWS::S3::Bucket"
       Properties:
         BucketName: ${self:provider.environment.COMPREHEND_BUCKET_NAME}
-    CompeleteSNSTopic:
-      Type: AWS::SNS::Topic
-      Properties:
-        TopicName: ${self:provider.environment.COMPLETE_SNS_TOPIC}
-        Subscription:
-          - Protocol: ${env:SNS_PROTOCOL}
-            Endpoint: ${env:SNS_ENDPOINT}

@@ -18,7 +18,7 @@ def s3_return_body(bucket_name, key):
     return body
 
 
-def lambda_handler(event, context):
+def handler(event, context):
     TRANSCRIBE_BUCKET_NAME = event["Records"][0]["s3"]["bucket"]["name"]
     input_key = urllib.parse.unquote_plus(
         event["Records"][0]["s3"]["object"]["key"], encoding="utf-8"
@@ -58,7 +58,7 @@ def lambda_handler(event, context):
 
     try:
         put_obj = s3.Object(COMPREHEND_BUCKET_NAME, output_key)
-        put_obj.put(Body=json.dumps(res_dict))
+        put_obj.put(Body=json.dumps(res_dict, ensure_ascii=False))
     except Exception as e:
         print("Error upload comprehend data into s3 bucket.")
         print(e)
@@ -66,19 +66,16 @@ def lambda_handler(event, context):
 
     try:
         topic = sns.Topic(TOPIC_ARN)
-        message_text = (
-            "records_path: "
-            + output_key.replace("-comprehend.json", ".wav")
-            + "\nresults_path: "
-            + output_key.replace("-comprehend.json", "")
-        )
-        message = {
-            "default": message_text,
-            "record_path": output_key.replace("-comprehend.json", ".wav"),
-            "result_path": output_key.replace("-comprehend.json", ""),
+        message_text = {
+            "record_path": "records/" + output_key.replace("-comprehend.json", ".wav"),
+            "result_path": "results/" + output_key.replace("-comprehend.json", ""),
         }
-        message_json = json.dumps(message)
-        topic.publish(Message=message_json, MessageStructure="json")
+        message = {
+            "default": json.dumps(message_text),
+            "record_path": "records/" + output_key.replace("-comprehend.json", ".wav"),
+            "result_path": "results/" + output_key.replace("-comprehend.json", ""),
+        }
+        topic.publish(Message=json.dumps(message), MessageStructure="json")
     except Exception as e:
         print("Error send message to SNS")
         print(e)

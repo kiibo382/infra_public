@@ -6,9 +6,7 @@ import boto3
 
 s3 = boto3.resource("s3")
 comprehend = boto3.client("comprehend")
-sns = boto3.resource("sns")
 COMPREHEND_BUCKET_NAME = os.environ["COMPREHEND_BUCKET_NAME"]
-TOPIC_ARN = os.environ["SNS_TOPIC_ARN"]
 
 
 def s3_return_body(bucket_name, key):
@@ -18,7 +16,7 @@ def s3_return_body(bucket_name, key):
     return body
 
 
-def lambda_handler(event, context):
+def handler(event, context):
     TRANSCRIBE_BUCKET_NAME = event["Records"][0]["s3"]["bucket"]["name"]
     input_key = urllib.parse.unquote_plus(
         event["Records"][0]["s3"]["object"]["key"], encoding="utf-8"
@@ -61,25 +59,5 @@ def lambda_handler(event, context):
         put_obj.put(Body=json.dumps(res_dict))
     except Exception as e:
         print("Error upload comprehend data into s3 bucket.")
-        print(e)
-        raise e
-
-    try:
-        topic = sns.Topic(TOPIC_ARN)
-        message_text = (
-            "records_path: "
-            + output_key.replace("-comprehend.json", ".wav")
-            + "\nresults_path: "
-            + output_key.replace("-comprehend.json", "")
-        )
-        message = {
-            "default": message_text,
-            "record_path": output_key.replace("-comprehend.json", ".wav"),
-            "result_path": output_key.replace("-comprehend.json", ""),
-        }
-        message_json = json.dumps(message)
-        topic.publish(Message=message_json, MessageStructure="json")
-    except Exception as e:
-        print("Error send message to SNS")
         print(e)
         raise e

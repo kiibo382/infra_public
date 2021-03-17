@@ -22,5 +22,3 @@ var/
 # other
 node_modules
 __pycache__
-.env
-.envrc

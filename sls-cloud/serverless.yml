@@ -4,7 +4,6 @@ frameworkVersion: "2"
 useDotenv: true
 
 plugins:
-  - serverless-deployment-bucket
   - serverless-apigw-binary
   - serverless-plugin-aws-alerts
 
@@ -15,18 +14,21 @@ provider:
   region: ${env:REGION}
   profile: ${env:PROFILE}
   environment:
-    DEPLOYMENT_BUCKET_NAME: ${self:service}-${opt:stage, self:provider.stage}-deployment-bucket
     RECORDS_BUCKET_NAME1: ${env:RECORDS_BUCKET_NAME1}
     RECORDS_BUCKET_NAME2: ${env:RECORDS_BUCKET_NAME2}
     TRANSCRIBE_BUCKET_NAME: ${self:service}-${opt:stage, self:provider.stage}-transcribe-bucket
     COMPREHEND_BUCKET_NAME: ${self:service}-${opt:stage, self:provider.stage}-comprehend-bucket
     COMPLETE_SNS_TOPIC: ${self:service}-${opt:stage, self:provider.stage}-complete-topic
-  deploymentBucket:
-    name: ${self:provider.environment.DEPLOYMENT_BUCKET_NAME}
   apiGateway:
     shouldStartNameWithService: true
   lambdaHashingVersion: 20201221
   logRetentionInDays: 30
+  logs:
+    restApi:
+      accessLogging: false
+      executionLogging: true
+      level: ERROR
+      fullExecutionData: false
   iam:
     role:
       statements:
@@ -64,14 +66,14 @@ custom:
     types:
       - "*/*"
   alerts:
-    stages:
-      - dev
     topics:
       alarm:
-        topic: ${self:service}-${opt:stage, self:provider.stage}-alarm
+        topic: ${self:service}-${opt:stage, self:provider.stage}-alerts-alarm
+        nameTemplate: $[functionName]-$[metricName]-Alarm
+        prefixTemplate: $[stackName]
         notifications:
-          - protocol: ${env:SNS_PROTOCOL}
-            endpoint: ${env:SNS_ENDPOINT}
+          - protocol: ${env:SNS_ALARM_PROTOCOL}
+            endpoint: ${env:SNS_ALARM_ENDPOINT}
     alarms:
       - functionErrors
       - functionThrottles
@@ -79,30 +81,33 @@ custom:
 package:
   include:
     - src/*
+  exclude:
+    - node_modules
+    - "*.sh"
+    - "*.dio"
+    - "*.json"
 
 functions:
   transcribe1:
-    handler: src/transcribe.lambda_handler
+    handler: src/transcribe.handler
     memorySize: 512
     events:
       - s3:
           bucket: ${env:RECORDS_BUCKET_NAME1}
           event: s3:ObjectCreated:*
-          existing: true
           rules:
             - suffix: .wav
   transcribe2:
-    handler: src/transcribe.lambda_handler
+    handler: src/transcribe.handler
     memorySize: 512
     events:
       - s3:
           bucket: ${env:RECORDS_BUCKET_NAME2}
           event: s3:ObjectCreated:*
-          existing: true
           rules:
             - suffix: .wav
   comprehend:
-    handler: src/comprehend.lambda_handler
+    handler: src/comprehend.handler
     memorySize: 512
     environment:
       SNS_TOPIC_ARN:
@@ -123,13 +128,13 @@ functions:
     memorySize: 512
     events:
       - http:
-          path: /results/{records_bucket}/{proxy+}
+          path: results/{records_bucket}/{proxy+}
           method: get
           request:
             parameters:
               paths:
                 records_bucket: true
-  records_get:
+  records-get:
     handler: src/records.get
     memorySize: 512
     events:
@@ -139,14 +144,6 @@ functions:
 
 resources:
   Resources:
-    S3RecordsBucket1:
-      Type: "AWS::S3::Bucket"
-      Properties:
-        BucketName: ${env:RECORDS_BUCKET_NAME1}
-    S3RecordsBucket2:
-      Type: "AWS::S3::Bucket"
-      Properties:
-        BucketName: ${env:RECORDS_BUCKET_NAME2}
     S3ComprehendBucket:
       Type: "AWS::S3::Bucket"
       Properties:
@@ -156,5 +153,5 @@ resources:
       Properties:
         TopicName: ${self:provider.environment.COMPLETE_SNS_TOPIC}
         Subscription:
-          - Protocol: ${env:SNS_PROTOCOL}
-            Endpoint: ${env:SNS_ENDPOINT}
+          - Protocol: ${env:SNS_COMPLETE_PROTOCOL}
+            Endpoint: ${env:SNS_COMPLETE_ENDPOINT}
