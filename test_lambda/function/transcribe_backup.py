@@ -34,9 +34,3 @@ def lambda_handler(event, context):
         print(e)
         print("Error transcribe object {} in bucket {}".format(key, bucket))
         raise e
-
-
-# s3からオブジェクトを取ってくる際にどのエラーが想定されるか
-# 1. バケットからオブジェクトを取得できない
-# 2.
-# 失敗した際に通知する、SNSに送る

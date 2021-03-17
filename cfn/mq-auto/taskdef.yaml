@@ -19,22 +19,18 @@ Parameters:
 
   Subnet1:
     Type: AWS::EC2::Subnet::Id
-    Default: subnet-51200527
 
   Subnet2:
     Type: AWS::EC2::Subnet::Id
-    Default: subnet-39650261
 
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup::Id
-    Default: sg-01fe606b93e1159e2
 
   VpcId:
     Type: AWS::EC2::VPC::Id
-    Default: vpc-54049630
 
 Conditions:
-  EC2: !Equals [ !Ref LaunchType, "EC2" ]
+  EC2: !Equals [!Ref LaunchType, "EC2"]
 
 Mappings:
   AWSRegionToAMI:
@@ -78,7 +74,7 @@ Resources:
           - Effect: Allow
             Principal:
               Service: [ec2.amazonaws.com]
-            Action: ['sts:AssumeRole']
+            Action: ["sts:AssumeRole"]
       Path: /
       Policies:
         - PolicyName: ecs-service
@@ -86,25 +82,25 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - 'ecs:CreateCluster'
-                  - 'ecs:DeregisterContainerInstance'
-                  - 'ecs:DiscoverPollEndpoint'
-                  - 'ecs:Poll'
-                  - 'ecs:RegisterContainerInstance'
-                  - 'ecs:StartTelemetrySession'
-                  - 'ecs:Submit*'
-                  - 'logs:CreateLogStream'
-                  - 'logs:PutLogEvents'
-                  - 'ecr:GetAuthorizationToken'
-                  - 'ecr:BatchGetImage'
-                  - 'ecr:GetDownloadUrlForLayer'
-                  - 'autoscaling:DescribeAutoScalingInstances'
-                  - 'autoscaling:DescribeAutoScalingGroups'
-                  - 'ec2:DescribeInstances'
-                Resource: '*'
+                  - "ecs:CreateCluster"
+                  - "ecs:DeregisterContainerInstance"
+                  - "ecs:DiscoverPollEndpoint"
+                  - "ecs:Poll"
+                  - "ecs:RegisterContainerInstance"
+                  - "ecs:StartTelemetrySession"
+                  - "ecs:Submit*"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                  - "ecr:GetAuthorizationToken"
+                  - "ecr:BatchGetImage"
+                  - "ecr:GetDownloadUrlForLayer"
+                  - "autoscaling:DescribeAutoScalingInstances"
+                  - "autoscaling:DescribeAutoScalingGroups"
+                  - "ec2:DescribeInstances"
+                Resource: "*"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
-  
+
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Condition: EC2
@@ -135,10 +131,10 @@ Resources:
   LaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
-      ImageId: !FindInMap [ AWSRegionToAMI, !Ref "AWS::Region", AMI ]
+      ImageId: !FindInMap [AWSRegionToAMI, !Ref "AWS::Region", AMI]
       InstanceType: !Ref InstanceType
       IamInstanceProfile: !Ref InstanceProfile
-      AssociatePublicIpAddress: 'false'
+      AssociatePublicIpAddress: "false"
       SecurityGroups:
         - !Ref SecurityGroup
       UserData:
@@ -150,12 +146,12 @@ Resources:
     Type: AWS::AutoScaling::AutoScalingGroup
     Condition: EC2
     Properties:
-      VPCZoneIdentifier: [ !Ref Subnet1, !Ref Subnet2 ]
+      VPCZoneIdentifier: [!Ref Subnet1, !Ref Subnet2]
       LaunchConfigurationName: !Ref LaunchConfiguration
       MinSize: 0
       MaxSize: !Ref ClusterSize
       DesiredCapacity: !Ref ClusterSize
-      Tags: 
+      Tags:
         - Key: Name
           Value: !Sub ${AWS::StackName} - ECS Host
           PropagateAtLaunch: true
@@ -178,74 +174,72 @@ Resources:
   Service:
     Type: AWS::ECS::Service
     Properties:
-      ServiceName: !Ref 'AWS::StackName'
+      ServiceName: !Ref "AWS::StackName"
       Cluster: !Ref Cluster
       DesiredCount: 3
       TaskDefinition: !Ref TaskDefinition
-  
+
   TaskDefinition:
-      Type: AWS::ECS::TaskDefinition
-      Properties:
-        Family: kizawa-cfn-taskdef
-        Volumes:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: kizawa-cfn-taskdef
+      Volumes:
         - Host:
             SourcePath: /var/lib/rabbitmq-asg-autocluster
           Name: rabbitmq-database
-        # important for rabbit node discovery as containers inherit the host's hostname that is in DNS 
-        NetworkMode: 'host'
-        ExecutionRoleArn: !Ref TaskExecutionRole
-        ContainerDefinitions:
-          - Name: rabbit
-            Image: 248968340359.dkr.ecr.ap-northeast-1.amazonaws.com/arnaud:latest
-            MountPoints:
-              - SourceVolume: rabbitmq-database
-                ContainerPath: /var/lib/rabbitmq
-            Cpu: 512
-            Memory: 256
-            PortMappings:
-              - HostPort: 5672
-                ContainerPort: 5672
-                Protocol: tcp
-              - HostPort: 15672
-                ContainerPort: 15672
-                Protocol: tcp
-              - HostPort: 4369
-                ContainerPort: 4369
-                Protocol: tcp
-              - HostPort: 25672
-                ContainerPort: 25672
-                Protocol: tcp
-            Environment:
-              - Name: RABBITMQ_DEFAULT_VHOST
-                Value: /
-              - Name: RABBITMQ_DEFAULT_USER
-                Value: guest
-              - Name: RABBITMQ_DEFAULT_PASS
-                Value: guest
-              - Name: RABBITMQ_DEFAULT_PORT
-                Value: 5672
-              - Name: RABBITMQ_VM_MEMORY_HIGH_WATERMARK
-                Value: 0.85
-              - Name: AWS_DEFAULT_REGION
-                Value: !Ref 'AWS::Region'
-              - Name: AWS_ASG_AUTOCLUSTER
-                Value: 'true'
-              # using a random erlang cookie
-              - Name: RABBITMQ_ERLANG_COOKIE
-                Value: 'ALWEDHDBZTQYWTJGTXWV'
-              - Name: RABBITMQ_QUEUE_MASTER_LOCATOR
-                Value: min-masters       
-            LogConfiguration:
-              LogDriver: awslogs
-              Options:
-                awslogs-group: !Ref LogGroup
-                awslogs-region: !Ref 'AWS::Region'
-                awslogs-stream-prefix: rabbit
-            ReadonlyRootFilesystem: 'false'
-            Privileged: 'true'
-            Ulimits:
-              - Name: nofile
-                SoftLimit: 10240
-                HardLimit: 32768
-
-        
+      # important for rabbit node discovery as containers inherit the host's hostname that is in DNS
+      NetworkMode: "host"
+      ExecutionRoleArn: !Ref TaskExecutionRole
+      ContainerDefinitions:
+        - Name: rabbit
+          Image: arnaud:latest
+          MountPoints:
+            - SourceVolume: rabbitmq-database
+              ContainerPath: /var/lib/rabbitmq
+          Cpu: 512
+          Memory: 256
+          PortMappings:
+            - HostPort: 5672
+              ContainerPort: 5672
+              Protocol: tcp
+            - HostPort: 15672
+              ContainerPort: 15672
+              Protocol: tcp
+            - HostPort: 4369
+              ContainerPort: 4369
+              Protocol: tcp
+            - HostPort: 25672
+              ContainerPort: 25672
+              Protocol: tcp
+          Environment:
+            - Name: RABBITMQ_DEFAULT_VHOST
+              Value: /
+            - Name: RABBITMQ_DEFAULT_USER
+              Value: guest
+            - Name: RABBITMQ_DEFAULT_PASS
+              Value: guest
+            - Name: RABBITMQ_DEFAULT_PORT
+              Value: 5672
+            - Name: RABBITMQ_VM_MEMORY_HIGH_WATERMARK
+              Value: 0.85
+            - Name: AWS_DEFAULT_REGION
+              Value: !Ref "AWS::Region"
+            - Name: AWS_ASG_AUTOCLUSTER
+              Value: "true"
+            # using a random erlang cookie
+            - Name: RABBITMQ_ERLANG_COOKIE
+              Value: "ALWEDHDBZTQYWTJGTXWV"
+            - Name: RABBITMQ_QUEUE_MASTER_LOCATOR
+              Value: min-masters
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: rabbit
+          ReadonlyRootFilesystem: "false"
+          Privileged: "true"
+          Ulimits:
+            - Name: nofile
+              SoftLimit: 10240
+              HardLimit: 32768

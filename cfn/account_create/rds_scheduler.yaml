@@ -1,20 +1,16 @@
 ---
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: CloudFormation template for auto stop and start RDS
-#
-# Metadata
-#
+
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
-    - Label:
-        default: CloudWatch Events Configuration
-      Parameters:
-      - StartSchedule
-      - StopSchedule
-#
-# Parameters
-#
+      - Label:
+          default: CloudWatch Events Configuration
+        Parameters:
+          - StartSchedule
+          - StopSchedule
+
 Parameters:
   StartSchedule:
     Description: Start Datetime format cron
@@ -24,9 +20,7 @@ Parameters:
     Description: Stop Datetime format cron
     Default: 0 10 ? * MON-FRI *
     Type: String
-#
-# Resources
-#
+
 Resources:
   StateSchedulerExecRole:
     Type: AWS::IAM::Role
@@ -34,32 +28,32 @@ Resources:
       RoleName: rds-sheduler-lambda-role
       AssumeRolePolicyDocument:
         Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - lambda.amazonaws.com
-          Action:
-          - sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
       Path: "/"
       Policies:
-      - PolicyName: LambdaExecPolicy
-        PolicyDocument:
-          Statement:
-          - Sid: AccessToCWLog
-            Effect: Allow
-            Action:
-            - logs:CreateLogGroup
-            - logs:CreateLogStream
-            - logs:PutLogEvents
-            Resource: "*"
-          - Sid: AccessToRDS
-            Effect: Allow
-            Action:
-            - rds:StopDBInstance
-            - rds:StartDBInstance
-            - rds:DescribeDBInstances
-            - rds:ListTagsForResource
-            Resource: "*"
+        - PolicyName: LambdaExecPolicy
+          PolicyDocument:
+            Statement:
+              - Sid: AccessToCWLog
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+              - Sid: AccessToRDS
+                Effect: Allow
+                Action:
+                  - rds:StopDBInstance
+                  - rds:StartDBInstance
+                  - rds:DescribeDBInstances
+                  - rds:ListTagsForResource
+                Resource: "*"
   StateSchedulerFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -96,7 +90,7 @@ Resources:
       Description: Scheduled RDS stop and start.
       Handler: index.lambda_handler
       MemorySize: 128
-      Role: !GetAtt [ StateSchedulerExecRole, Arn ]
+      Role: !GetAtt [StateSchedulerExecRole, Arn]
       Runtime: python3.6
       Timeout: 60
   StartScheduledRule:
@@ -107,9 +101,9 @@ Resources:
       ScheduleExpression: !Sub cron(${StartSchedule})
       State: ENABLED
       Targets:
-      - Arn: !GetAtt [ StateSchedulerFunction, Arn ]
-        Id: StateSchedulerFunction
-        Input: '{"Action":"Start"}'
+        - Arn: !GetAtt [StateSchedulerFunction, Arn]
+          Id: StateSchedulerFunction
+          Input: '{"Action":"Start"}'
   StopScheduledRule:
     Type: AWS::Events::Rule
     Properties:
@@ -118,20 +112,20 @@ Resources:
       ScheduleExpression: !Sub cron(${StopSchedule})
       State: ENABLED
       Targets:
-      - Arn: !GetAtt [ StateSchedulerFunction, Arn ]
-        Id: StateSchedulerFunction
-        Input: '{"Action":"Stop"}'
+        - Arn: !GetAtt [StateSchedulerFunction, Arn]
+          Id: StateSchedulerFunction
+          Input: '{"Action":"Stop"}'
   PermissionForStartEventsToInvokeLambda:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref StateSchedulerFunction
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
-      SourceArn: !GetAtt [ StartScheduledRule, Arn ]
+      SourceArn: !GetAtt [StartScheduledRule, Arn]
   PermissionForStopEventsToInvokeLambda:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref StateSchedulerFunction
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
-      SourceArn: !GetAtt [ StopScheduledRule, Arn ]
+      SourceArn: !GetAtt [StopScheduledRule, Arn]
